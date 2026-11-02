@@ -5,7 +5,450 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+}
+
+// ----------------------------------------------------
+// Enums
+// ----------------------------------------------------
+
+enum StudentStatus {
+  ACTIVE
+  LEFT
+}
+
+enum PreferredLang {
+  EN
+  HI
+}
+
+enum PaymentSource {
+  ONLINE_GATEWAY
+  UPI_DIRECT
+  BANK_TRANSFER
+  CASH
+  CHEQUE
+}
+
+enum PaymentStatus {
+  MATCHED
+  UNMATCHED
+  REFUNDED
+}
+
+enum ReminderStatus {
+  SCHEDULED
+  SENT
+  FAILED
+  CANCELLED
+  SUPPRESSED_PAID
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SETTLED
+}
+
+enum RiskStatus {
+  OPEN
+  CONFIRMED
+  FALSE_FLAG
+}
+
+enum TaskStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  DISMISSED
+}
+
+enum UserRole {
+  ADMIN
+  ACCOUNTS
+  COUNSELLOR
+}
+
+// ----------------------------------------------------
+// 1. Centres & Academic Batches
+// ----------------------------------------------------
+
+model Centre {
+  id        String   @id @default(cuid())
+  name      String
+  city      String
+  gstin     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  batches Batch[]
+  users   User[]
+
+  @@map("centres")
+}
+
+model Batch {
+  id          String   @id @default(cuid())
+  centreId    String   @map("centre_id")
+  name        String
+  courseStart DateTime @map("course_start")
+  courseEnd   DateTime @map("course_end")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  centre   Centre    @relation(fields: [centreId], references: [id], onDelete: Cascade)
+  students Student[]
+  feePlans FeePlan[]
+
+  @@index([centreId])
+  @@map("batches")
+}
+
+// ----------------------------------------------------
+// 2. Students, Guardians & DPDP Consent
+// ----------------------------------------------------
+
+model Student {
+  id          String        @id @default(cuid())
+  name        String
+  batchId     String        @map("batch_id")
+  dateOfBirth DateTime?     @map("date_of_birth")
+  status      StudentStatus @default(ACTIVE)
+  leftOn      DateTime?     @map("left_on")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  batch           Batch            @relation(fields: [batchId], references: [id])
+  guardians       Guardian[]
+  enrollments     Enrollment[]
+  payments        Payment[]
+  consents        Consent[]
+  riskFlags       RiskFlag[]
+  counsellorTasks CounsellorTask[]
+
+  @@index([batchId])
+  @@index([status])
+  @@map("students")
+}
+
+model Guardian {
+  id            String        @id @default(cuid())
+  studentId     String?       @map("student_id")
+  name          String
+  phone         String
+  email         String?
+  passwordHash  String?       @map("password_hash")
+  relation      String        @default("GUARDIAN")
+  preferredLang PreferredLang @default(EN) @map("preferred_lang")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  student  Student?  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  consents Consent[]
+
+  @@index([studentId])
+  @@index([phone])
+  @@index([email])
+  @@map("guardians")
+}
+
+model Consent {
+  id            String    @id @default(cuid())
+  guardianId    String    @map("guardian_id")
+  studentId     String?   @map("student_id")
+  noticeVersion String    @map("notice_version")
+  grantedAt     DateTime  @default(now()) @map("granted_at")
+  ipAddress     String?   @map("ip_address")
+  withdrawnAt   DateTime? @map("withdrawn_at")
+
+  guardian Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  student  Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([guardianId])
+  @@index([studentId])
+  @@map("consents")
+}
+
+// ----------------------------------------------------
+// 3. Fee Plans, Enrollments & Scheduled Instalments
+// ----------------------------------------------------
+
+model FeePlan {
+  id                String   @id @default(cuid())
+  batchId           String   @map("batch_id")
+  name              String?
+  totalPaise        BigInt   @map("total_paise")
+  registrationPaise BigInt   @map("registration_paise")
+  instalmentCount   Int      @map("instalment_count")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  batch       Batch        @relation(fields: [batchId], references: [id])
+  enrollments Enrollment[]
+
+  @@index([batchId])
+  @@map("fee_plans")
+}
+
+model Enrollment {
+  id             String   @id @default(cuid())
+  studentId      String   @map("student_id")
+  planId         String   @map("plan_id")
+  discountPaise  BigInt   @default(0) @map("discount_paise")
+  discountReason String?  @map("discount_reason")
+  enrolledAt     DateTime @default(now()) @map("enrolled_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  plan        FeePlan      @relation(fields: [planId], references: [id])
+  instalments Instalment[]
+  refundCases RefundCase[]
+
+  @@index([studentId])
+  @@index([planId])
+  @@map("enrollments")
+}
+
+model Instalment {
+  id           String   @id @default(cuid())
+  enrollmentId String   @map("enrollment_id")
+  seq          Int
+  amountPaise  BigInt   @map("amount_paise")
+  dueDate      DateTime @map("due_date")
+  graceDays    Int      @default(3) @map("grace_days")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  enrollment  Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  allocations Allocation[]
+  reminders   Reminder[]
+
+  @@unique([enrollmentId, seq])
+  @@index([dueDate])
+  @@map("instalments")
+}
+
+// ----------------------------------------------------
+// 4. Append-Only Payments, Allocations & Sequential GST Receipts
+// ----------------------------------------------------
+
+model Payment {
+  id          String        @id @default(cuid())
+  studentId   String?       @map("student_id")
+  amountPaise BigInt        @map("amount_paise")
+  source      PaymentSource
+  gatewayRef  String?       @unique @map("gateway_ref")
+  receivedAt  DateTime      @default(now()) @map("received_at")
+  status      PaymentStatus @default(MATCHED)
+  notes       String?
+
+  student     Student?     @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  allocations Allocation[]
+  receipt     Receipt?
+
+  @@index([studentId])
+  @@index([status])
+  @@map("payments")
+}
+
+model Allocation {
+  id           String   @id @default(cuid())
+  paymentId    String   @map("payment_id")
+  instalmentId String   @map("instalment_id")
+  amountPaise  BigInt   @map("amount_paise")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  payment    Payment    @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  instalment Instalment @relation(fields: [instalmentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([instalmentId])
+  @@map("allocations")
+}
+
+model Receipt {
+  id           String   @id @default(cuid())
+  paymentId    String   @unique @map("payment_id")
+  receiptNo    String   @unique @map("receipt_no")
+  gstin        String
+  taxablePaise BigInt   @map("taxable_paise")
+  gstPaise     BigInt   @map("gst_paise")
+  issuedAt     DateTime @default(now()) @map("issued_at")
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("receipts")
+}
+
+// ----------------------------------------------------
+// 5. Automated Reminders Log
+// ----------------------------------------------------
+
+model Reminder {
+  id           String         @id @default(cuid())
+  instalmentId String         @map("instalment_id")
+  templateKey  String         @map("template_key")
+  scheduledFor DateTime       @map("scheduled_for")
+  sentAt       DateTime?      @map("sent_at")
+  status       ReminderStatus @default(SCHEDULED)
+  channel      String         @default("WHATSAPP")
+  responseLog  String?        @map("response_log")
+  createdAt    DateTime       @default(now()) @map("created_at")
+
+  instalment Instalment @relation(fields: [instalmentId], references: [id], onDelete: Cascade)
+
+  @@unique([instalmentId, templateKey, scheduledFor])
+  @@index([scheduledFor, status])
+  @@map("reminders")
+}
+
+// ----------------------------------------------------
+// 6. Versioned Refund Policies & Exit Refund Cases
+// ----------------------------------------------------
+
+model RefundPolicy {
+  id            String   @id @default(cuid())
+  version       String   @unique
+  effectiveFrom DateTime @map("effective_from")
+  rulesJson     Json     @map("rules_json")
+  publishedAt   DateTime @default(now()) @map("published_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("refund_policies")
+}
+
+model RefundCase {
+  id            String       @id @default(cuid())
+  enrollmentId  String       @map("enrollment_id")
+  leaveDate     DateTime     @map("leave_date")
+  computedPaise BigInt       @map("computed_paise")
+  policyVersion String       @map("policy_version")
+  status        RefundStatus @default(PENDING)
+  paidByDate    DateTime     @map("paid_by_date")
+  settledAt     DateTime?    @map("settled_at")
+  reason        String?
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+
+  @@index([enrollmentId])
+  @@index([paidByDate, status])
+  @@map("refund_cases")
+}
+
+// ----------------------------------------------------
+// 7. Dropout Risk Diagnostics & Counsellor Interventions
+// ----------------------------------------------------
+
+model RiskFlag {
+  id          String     @id @default(cuid())
+  studentId   String     @map("student_id")
+  score       Int
+  reasonsJson Json       @map("reasons_json")
+  status      RiskStatus @default(OPEN)
+  reviewedBy  String?    @map("reviewed_by")
+  reviewedAt  DateTime?  @map("reviewed_at")
+  createdAt   DateTime   @default(now()) @map("created_at")
+
+  student         Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  counsellorTasks CounsellorTask[]
+
+  @@index([studentId])
+  @@index([status])
+  @@map("risk_flags")
+}
+
+model CounsellorTask {
+  id         String     @id @default(cuid())
+  studentId  String     @map("student_id")
+  flagId     String?    @map("flag_id")
+  assigneeId String?    @map("assignee_id")
+  dueDate    DateTime   @map("due_date")
+  status     TaskStatus @default(OPEN)
+  notes      String?
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  student  Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  riskFlag RiskFlag? @relation(fields: [flagId], references: [id], onDelete: SetNull)
+  assignee User?     @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+
+  @@index([studentId])
+  @@index([assigneeId])
+  @@index([status])
+  @@map("counsellor_tasks")
+}
+
+// ----------------------------------------------------
+// 8. Immutable Audit Trail
+// ----------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?  @map("actor_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  beforeState Json?    @map("before_state")
+  afterState  Json?    @map("after_state")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
+
+// ----------------------------------------------------
+// 9. Staff Users & Authentication
+// ----------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  name         String
+  role         UserRole @default(ACCOUNTS)
+  centreId     String?  @map("centre_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  centre        Centre?          @relation(fields: [centreId], references: [id], onDelete: SetNull)
+  assignedTasks CounsellorTask[]
+
+  @@index([role])
+  @@map("users")
+}
+
+// ----------------------------------------------------
+// 10. Parent Passwordless Phone OTP Sessions
+// ----------------------------------------------------
+
+model OtpSession {
+  id        String   @id @default(cuid())
+  phone     String
+  otpHash   String   @map("otp_hash")
+  expiresAt DateTime @map("expires_at")
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone])
+  @@map("otp_sessions")
+}
+
+enum SubjectType {
+  STAFF
+  PARENT
+}
+
+model Session {
+  id          String      @id @default(cuid())
+  subjectType SubjectType @map("subject_type")
+  subjectId   String      @map("subject_id")
+  tokenHash   String      @unique @map("token_hash")
+  expiresAt   DateTime    @map("expires_at")
+  revokedAt   DateTime?   @map("revoked_at")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@index([subjectType, subjectId])
+  @@map("sessions")
 }
