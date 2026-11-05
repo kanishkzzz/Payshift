@@ -1,7 +1,7 @@
 "use server";
 
 import { AuthService } from "@/modules/auth/auth-service";
-import { AuthError, SignupParentInput, LoginInput } from "@/modules/auth/types";
+import { AuthError, SignupParentInput, LoginStaffInput } from "@/modules/auth/types";
 import { redirect } from "next/navigation";
 
 export interface ActionState {
@@ -16,16 +16,16 @@ export async function signupParentAction(
 ): Promise<ActionState> {
   const name = formData.get("name")?.toString() ?? "";
   const phone = formData.get("phone")?.toString() ?? "";
-  const password = formData.get("password")?.toString() ?? "";
   const email = formData.get("email")?.toString() ?? "";
   const studentId = formData.get("studentId")?.toString() ?? "";
   const relation = formData.get("relation")?.toString() || "GUARDIAN";
+  const otp = formData.get("otp")?.toString() ?? "";
 
   try {
     const input: SignupParentInput = {
       name,
       phone,
-      password,
+      otp: otp || undefined,
       email: email || undefined,
       studentId: studentId || undefined,
       relation,
@@ -43,37 +43,31 @@ export async function signupParentAction(
   redirect("/parent/dues");
 }
 
-export async function loginAction(
+export async function loginStaffAction(
   _prevState: ActionState | null,
   formData: FormData
 ): Promise<ActionState> {
-  const identifier = formData.get("identifier")?.toString() ?? "";
+  const email = formData.get("email")?.toString() ?? "";
   const password = formData.get("password")?.toString() ?? "";
 
-  let result;
   try {
-    const input: LoginInput = {
-      identifier,
+    const input: LoginStaffInput = {
+      email,
       password,
     };
 
-    result = await AuthService.login(input, { setCookie: true });
+    await AuthService.loginStaff(input, { setCookie: true });
   } catch (err: unknown) {
     if (err instanceof AuthError) {
       return { error: err.message };
     }
-    return { error: "An unexpected error occurred during login." };
+    return { error: "An unexpected error occurred during staff login." };
   }
 
-  if (result.subjectType === "PARENT") {
-    redirect("/parent/dues");
-  } else {
-    redirect("/dashboard");
-  }
+  redirect("/dashboard");
 }
 
 export async function logoutAction(): Promise<void> {
   await AuthService.logout();
   redirect("/login");
 }
-
