@@ -1,82 +1,83 @@
 import crypto from "crypto";
-import {
+import type {
+  BuildCheckoutOptions,
+  CheckoutPayload,
   CreateOrderOptions,
   CreateOrderResult,
+  NormalisedPaymentStatus,
   NormalisedWebhookEvent,
   PaymentGateway,
 } from "../types";
 
-/**
- * Timing-safe string comparison to protect against timing attacks.
- */
+const DEV_FALLBACK_SECRET = "mock_tracky_webhook_secret_key_2026";
+
+/** Timing-safe string comparison to protect against timing attacks. */
 export function timingSafeCompare(a: string, b: string): boolean {
   if (!a || !b) return false;
   const bufA = Buffer.from(a, "utf8");
   const bufB = Buffer.from(b, "utf8");
-  if (bufA.length !== bufB.length) {
-    return false;
-  }
+  if (bufA.length !== bufB.length) return false;
   return crypto.timingSafeEqual(bufA, bufB);
 }
 
 export class MockGateway implements PaymentGateway {
+  readonly provider = "mock" as const;
+  readonly signatureHeader = "x-mock-signature";
+
   private secret: string;
   private baseUrl: string;
 
   constructor(secret?: string, baseUrl?: string) {
-    this.secret =
-      secret ||
-      process.env.MOCK_PAYMENT_WEBHOOK_SECRET ||
-      process.env.MOCK_GATEWAY_SECRET ||
-      "mock_tracky_webhook_secret_key_2026";
-    this.baseUrl =
-      baseUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const envSecret = process.env.MOCK_PAYMENT_WEBHOOK_SECRET || process.env.MOCK_GATEWAY_SECRET;
+
+    // A publicly known secret in production means anyone can forge a "payment".
+    if (process.env.NODE_ENV === "production" && !secret && !envSecret) {
+      throw new Error(
+        "MockGateway in production requires MOCK_PAYMENT_WEBHOOK_SECRET. Set PAYMENT_GATEWAY=razorpay for real payments."
+      );
+    }
+
+    this.secret = secret || envSecret || DEV_FALLBACK_SECRET;
+    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
   }
 
-  /**
-   * Generates a deterministic order ID and mock checkout URL.
-   */
   async createOrder(options: CreateOrderOptions): Promise<CreateOrderResult> {
-    const amountBig = BigInt(options.amountPaise);
-    // Deterministic order ID derived from orderRef and amount
+    const amountPaise = BigInt(options.amountPaise);
     const hash = crypto
       .createHash("sha256")
-      .update(`${options.orderRef}:${amountBig.toString()}:${options.currency || "INR"}`)
+      .update(`${options.orderRef}:${amountPaise.toString()}:${options.currency || "INR"}`)
       .digest("hex")
       .slice(0, 16);
 
     const gatewayOrderId = `order_mock_${hash}`;
-    const checkoutUrl = `${this.baseUrl}/checkout/mock?orderId=${gatewayOrderId}&amount=${amountBig.toString()}&ref=${encodeURIComponent(options.orderRef)}`;
-
     return {
       gatewayOrderId,
-      checkoutUrl,
+      checkout: this.buildCheckout({
+        gatewayOrderId,
+        orderRef: options.orderRef,
+        amountPaise,
+        customer: options.customer,
+      }),
     };
   }
 
-  /**
-   * Computes HMAC-SHA256 signature for a mock payload (useful in tests and mock dispatcher).
-   */
-  signPayload(rawBody: string): string {
-    return crypto
-      .createHmac("sha256", this.secret)
-      .update(rawBody)
-      .digest("hex");
+  buildCheckout(options: BuildCheckoutOptions): CheckoutPayload {
+    const url =
+      `${this.baseUrl}/checkout/mock?orderId=${options.gatewayOrderId}` +
+      `&amount=${options.amountPaise.toString()}&ref=${encodeURIComponent(options.orderRef)}`;
+    return { provider: "mock", checkoutUrl: url };
   }
 
-  /**
-   * Timing-safe verification of webhook signature.
-   */
+  signPayload(rawBody: string): string {
+    return crypto.createHmac("sha256", this.secret).update(rawBody).digest("hex");
+  }
+
   verifyWebhook(rawBody: string, signature: string): boolean {
     if (!signature || !rawBody) return false;
-    const computedSignature = this.signPayload(rawBody);
-    return timingSafeCompare(computedSignature, signature);
+    return timingSafeCompare(this.signPayload(rawBody), signature);
   }
 
-  /**
-   * Parses and normalises a verified mock webhook event.
-   */
-  parseWebhookEvent(rawBody: string): NormalisedWebhookEvent {
+  parseWebhookEvent(rawBody: string, headers?: Headers): NormalisedWebhookEvent {
     let payload: any;
     try {
       payload = JSON.parse(rawBody);
@@ -84,31 +85,24 @@ export class MockGateway implements PaymentGateway {
       throw new Error("Invalid JSON in mock webhook payload");
     }
 
-    const eventId = String(payload.eventId || payload.id || `evt_mock_${Date.now()}`);
     const type = String(payload.type || payload.event || "payment.captured");
-    const gatewayOrderId = String(payload.gatewayOrderId || payload.orderId || "");
-    const gatewayPaymentId = String(
-      payload.gatewayPaymentId || payload.paymentId || `pay_mock_${Date.now()}`
+    const gatewayPaymentId = String(payload.gatewayPaymentId || payload.paymentId || `pay_mock_${Date.now()}`);
+    const eventId = String(
+      headers?.get("x-mock-event-id") || payload.eventId || payload.id || `evt_mock_${gatewayPaymentId}`
     );
-    const amountPaise = BigInt(payload.amountPaise ?? payload.amount ?? 0);
 
-    let status: "PAID" | "FAILED" | "OTHER" = "PAID";
-    if (payload.status === "FAILED" || type.includes("failed")) {
-      status = "FAILED";
-    } else if (payload.status === "PAID" || type.includes("captured") || type.includes("paid")) {
-      status = "PAID";
-    } else {
-      status = payload.status || "OTHER";
-    }
+    let status: NormalisedPaymentStatus = "OTHER";
+    if (payload.status === "FAILED" || type.includes("failed")) status = "FAILED";
+    else if (payload.status === "PAID" || type.includes("captured") || type.includes("paid")) status = "PAID";
 
     return {
       eventId,
       type,
-      gatewayOrderId,
+      gatewayOrderId: String(payload.gatewayOrderId || payload.orderId || ""),
       gatewayPaymentId,
-      amountPaise,
+      amountPaise: BigInt(payload.amountPaise ?? payload.amount ?? 0),
       status,
+      occurredAt: new Date(),
     };
   }
 }
-

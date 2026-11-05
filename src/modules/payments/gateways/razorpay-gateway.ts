@@ -1,92 +1,139 @@
 import crypto from "crypto";
-import {
+import Razorpay from "razorpay";
+import { timingSafeCompare } from "./mock-gateway";
+import type {
+  BuildCheckoutOptions,
+  CheckoutPayload,
   CreateOrderOptions,
   CreateOrderResult,
+  FetchedGatewayPayment,
+  NormalisedPaymentStatus,
   NormalisedWebhookEvent,
   PaymentGateway,
 } from "../types";
-import { timingSafeCompare } from "./mock-gateway";
+
+export class GatewayConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GatewayConfigError";
+  }
+}
+
+const MIN_ORDER_PAISE = BigInt(100); // ₹1
+
+function mapPaymentStatus(rawStatus: string): NormalisedPaymentStatus {
+  if (rawStatus === "captured") return "PAID";
+  if (rawStatus === "failed") return "FAILED";
+  return "OTHER";
+}
+
+/** Only money-in events count as PAID. payment.authorized is NOT paid. */
+function mapEventStatus(event: string): NormalisedPaymentStatus {
+  if (event === "payment.captured" || event === "order.paid") return "PAID";
+  if (event === "payment.failed") return "FAILED";
+  return "OTHER";
+}
+
+function unixToDate(value: unknown): Date | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? new Date(value * 1000) : undefined;
+}
+
+function describeRazorpayError(err: unknown): string {
+  const e = err as { error?: { description?: string }; message?: string };
+  return e?.error?.description ?? e?.message ?? "unknown error";
+}
 
 export class RazorpayGateway implements PaymentGateway {
-  private keyId: string;
-  private keySecret: string;
-  private webhookSecret: string;
+  readonly provider = "razorpay" as const;
+  readonly signatureHeader = "x-razorpay-signature";
 
-  constructor() {
-    this.keyId = process.env.RAZORPAY_KEY_ID || "";
-    this.keySecret = process.env.RAZORPAY_KEY_SECRET || "";
-    this.webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || "";
+  private readonly keyId: string;
+  private readonly keySecret: string;
+  private readonly webhookSecret: string;
+  private client: Razorpay | null = null;
+
+  constructor(config?: { keyId?: string; keySecret?: string; webhookSecret?: string }) {
+    this.keyId = config?.keyId ?? process.env.RAZORPAY_KEY_ID ?? "";
+    this.keySecret = config?.keySecret ?? process.env.RAZORPAY_KEY_SECRET ?? "";
+    this.webhookSecret = config?.webhookSecret ?? process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
   }
 
-  /**
-   * Creates an order via Razorpay Orders API (or simulated in test mode if credentials are unconfigured).
-   */
+  private getClient(): Razorpay {
+    if (!this.keyId || !this.keySecret) {
+      throw new GatewayConfigError("Razorpay is not configured: set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.");
+    }
+    if (!this.client) {
+      this.client = new Razorpay({ key_id: this.keyId, key_secret: this.keySecret });
+    }
+    return this.client;
+  }
+
   async createOrder(options: CreateOrderOptions): Promise<CreateOrderResult> {
-    const amountPaise = Number(options.amountPaise);
+    const amountPaise = BigInt(options.amountPaise);
+    if (amountPaise < MIN_ORDER_PAISE) throw new Error("Razorpay orders must be at least ₹1 (100 paise).");
+    if (amountPaise > BigInt(Number.MAX_SAFE_INTEGER)) throw new Error("Order amount exceeds the safe integer range.");
 
-    // If live credentials are provided, invoke Razorpay REST API
-    if (this.keyId && this.keySecret) {
-      const basicAuth = Buffer.from(`${this.keyId}:${this.keySecret}`).toString("base64");
-      const res = await fetch("https://api.razorpay.com/v1/orders", {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${basicAuth}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          amount: amountPaise,
-          currency: options.currency || "INR",
-          receipt: options.orderRef,
-          notes: options.notes,
-        }),
+    const client = this.getClient();
+    let order: { id: string; amount: number | string };
+    try {
+      order = await client.orders.create({
+        amount: Number(amountPaise),
+        currency: options.currency ?? "INR",
+        receipt: options.orderRef.slice(0, 40),
+        notes: options.notes ?? {},
       });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Razorpay API order creation failed: ${res.status} ${errorText}`);
-      }
-
-      const orderData = (await res.json()) as { id: string };
-      return {
-        gatewayOrderId: orderData.id,
-        checkoutUrl: `https://checkout.razorpay.com/v1/checkout.html?order_id=${orderData.id}`,
-      };
+    } catch (err) {
+      throw new Error(`Razorpay order creation failed: ${describeRazorpayError(err)}`);
     }
 
-    // Test mode fallback when running tests without live network calls
-    const testHash = crypto
-      .createHash("sha256")
-      .update(`${options.orderRef}:${amountPaise}`)
-      .digest("hex")
-      .slice(0, 14);
+    if (!order?.id) throw new Error("Razorpay did not return an order id.");
+    if (BigInt(order.amount) !== amountPaise) {
+      throw new Error(`Razorpay order amount mismatch: requested ${amountPaise}, got ${order.amount}.`);
+    }
 
-    const gatewayOrderId = `order_${testHash}`;
     return {
-      gatewayOrderId,
-      checkoutUrl: `https://checkout.razorpay.com/v1/checkout.html?order_id=${gatewayOrderId}`,
+      gatewayOrderId: order.id,
+      checkout: this.buildCheckout({
+        gatewayOrderId: order.id,
+        orderRef: options.orderRef,
+        amountPaise,
+        customer: options.customer,
+      }),
     };
   }
 
-  /**
-   * Verifies incoming webhook signature using timing-safe comparison.
-   * Compares the computed HMAC-SHA256 signature against the x-razorpay-signature header.
-   */
-  verifyWebhook(rawBody: string, signature: string): boolean {
-    if (!signature || !rawBody) return false;
-    if (!this.webhookSecret) return false;
-
-    const computedSignature = crypto
-      .createHmac("sha256", this.webhookSecret)
-      .update(rawBody)
-      .digest("hex");
-
-    return timingSafeCompare(computedSignature, signature);
+  buildCheckout(options: BuildCheckoutOptions): CheckoutPayload {
+    if (!this.keyId) throw new GatewayConfigError("Razorpay is not configured: set RAZORPAY_KEY_ID.");
+    return {
+      provider: "razorpay",
+      keyId: this.keyId,
+      gatewayOrderId: options.gatewayOrderId,
+      amountPaise: options.amountPaise.toString(),
+      currency: "INR",
+      prefill: {
+        name: options.customer?.name,
+        contact: options.customer?.phone,
+        email: options.customer?.email,
+      },
+    };
   }
 
-  /**
-   * Normalises Razorpay webhook event payload.
-   */
-  parseWebhookEvent(rawBody: string): NormalisedWebhookEvent {
+  verifyWebhook(rawBody: string, signature: string): boolean {
+    if (!rawBody || !signature || !this.webhookSecret) return false;
+    const expected = crypto.createHmac("sha256", this.webhookSecret).update(rawBody).digest("hex");
+    return timingSafeCompare(expected, signature);
+  }
+
+  verifyCheckoutSignature(gatewayOrderId: string, gatewayPaymentId: string, signature: string): boolean {
+    if (!gatewayOrderId || !gatewayPaymentId || !signature || !this.keySecret) return false;
+    const expected = crypto
+      .createHmac("sha256", this.keySecret)
+      .update(`${gatewayOrderId}|${gatewayPaymentId}`)
+      .digest("hex");
+    return timingSafeCompare(expected, signature);
+  }
+
+  parseWebhookEvent(rawBody: string, headers?: Headers): NormalisedWebhookEvent {
     let payload: any;
     try {
       payload = JSON.parse(rawBody);
@@ -94,32 +141,47 @@ export class RazorpayGateway implements PaymentGateway {
       throw new Error("Invalid JSON in Razorpay webhook payload");
     }
 
-    const event = String(payload.event || "");
-    const paymentEntity = payload.payload?.payment?.entity;
-    const orderEntity = payload.payload?.order?.entity;
+    const event = String(payload?.event ?? "");
+    const payment = payload?.payload?.payment?.entity ?? {};
+    const order = payload?.payload?.order?.entity ?? {};
 
-    const eventId = String(payload.id || payload.event_id || `evt_${paymentEntity?.id || Date.now()}`);
-    const gatewayOrderId = String(paymentEntity?.order_id || orderEntity?.id || "");
-    const gatewayPaymentId = String(paymentEntity?.id || "");
-    const amountPaise = BigInt(paymentEntity?.amount ?? orderEntity?.amount ?? 0);
+    const gatewayPaymentId = String(payment.id ?? "");
+    const gatewayOrderId = String(payment.order_id ?? order.id ?? "");
 
-    let status: "PAID" | "FAILED" | "OTHER" = "PAID";
-    if (event === "payment.captured" || event === "order.paid") {
-      status = "PAID";
-    } else if (event.includes("failed")) {
-      status = "FAILED";
-    } else {
-      status = "OTHER";
-    }
+    const headerEventId = headers?.get("x-razorpay-event-id")?.trim();
+    const eventId = headerEventId || `${event}:${gatewayPaymentId || gatewayOrderId}:${payload?.created_at ?? ""}`;
+
+    const rawAmount = payment.amount ?? order.amount_paid ?? order.amount ?? 0;
 
     return {
       eventId,
       type: event,
       gatewayOrderId,
       gatewayPaymentId,
-      amountPaise,
-      status,
+      amountPaise: BigInt(rawAmount),
+      status: mapEventStatus(event),
+      occurredAt: unixToDate(payment.created_at) ?? unixToDate(payload?.created_at),
+      method: typeof payment.method === "string" ? payment.method : undefined,
+    };
+  }
+
+  async fetchPayment(gatewayPaymentId: string): Promise<FetchedGatewayPayment> {
+    const client = this.getClient();
+    let p: any;
+    try {
+      p = await client.payments.fetch(gatewayPaymentId);
+    } catch (err) {
+      throw new Error(`Razorpay payment fetch failed: ${describeRazorpayError(err)}`);
+    }
+    const rawStatus = String(p?.status ?? "");
+    return {
+      gatewayPaymentId: String(p?.id ?? gatewayPaymentId),
+      gatewayOrderId: String(p?.order_id ?? ""),
+      amountPaise: BigInt(p?.amount ?? 0),
+      status: mapPaymentStatus(rawStatus),
+      rawStatus,
+      occurredAt: unixToDate(p?.created_at),
+      method: typeof p?.method === "string" ? p.method : undefined,
     };
   }
 }
-

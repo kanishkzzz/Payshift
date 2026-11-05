@@ -824,10 +824,10 @@ async function main() {
         i < 6
           ? new Date("2026-09-20T00:00:00.000Z")
           : i < 10
-          ? new Date("2026-10-15T00:00:00.000Z") // 18 days overdue on 2026-11-02
-          : i < 13
-          ? new Date("2026-09-10T00:00:00.000Z") // 53 days overdue on 2026-11-02
-          : new Date("2026-08-15T00:00:00.000Z"); // Inst 2 due Aug 15 -> 79 days overdue
+            ? new Date("2026-10-15T00:00:00.000Z") // 18 days overdue on 2026-11-02
+            : i < 13
+              ? new Date("2026-09-10T00:00:00.000Z") // 53 days overdue on 2026-11-02
+              : new Date("2026-08-15T00:00:00.000Z"); // Inst 2 due Aug 15 -> 79 days overdue
 
       instalmentsToInsert.push({
         id: inst1Id,
@@ -1298,3 +1298,13 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+await prisma.refundPolicy.upsert({
+  where: { version: "v2026.1" },
+  update: {},
+  create: {
+    version: "v2026.1",
+    effectiveFrom: new Date("2026-04-01T00:00:00+05:30"),
+    rulesJson: { coolingOffDays: 7, registrationRefundable: false, settlementDays: 10 },
+  },
+});

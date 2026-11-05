@@ -149,8 +149,10 @@ describe("Tracky Payment Engine & Webhook Architecture", () => {
       // Deterministic: same input -> same gateway order ID
       expect(order1.gatewayOrderId).toBe(order2.gatewayOrderId);
       expect(order1.gatewayOrderId).toMatch(/^order_mock_/);
-      expect(order1.checkoutUrl).toContain(order1.gatewayOrderId);
-      expect(order1.checkoutUrl).toContain("amount=1500000");
+      expect(order1.checkout.provider).toBe("mock");
+      const checkoutUrl = order1.checkout.provider === "mock" ? order1.checkout.checkoutUrl : "";
+      expect(checkoutUrl).toContain(order1.gatewayOrderId);
+      expect(checkoutUrl).toContain("amount=1500000");
     });
 
     it("MockGateway performs timing-safe signature generation and verification", () => {

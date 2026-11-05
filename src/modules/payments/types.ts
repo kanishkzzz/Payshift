@@ -1,25 +1,44 @@
-/**
- * Unified Payment Gateway Interface and Domain Types.
- */
+export type GatewayProvider = "mock" | "razorpay";
 
-export interface OrderCustomerDetails {
+export interface CheckoutCustomer {
   name?: string;
-  email?: string;
   phone?: string;
+  email?: string;
 }
 
 export interface CreateOrderOptions {
   orderRef: string;
   amountPaise: bigint | number;
-  currency?: string; // Default: "INR"
-  customer?: OrderCustomerDetails;
+  currency?: "INR";
+  customer?: CheckoutCustomer;
   notes?: Record<string, string>;
 }
 
+/** What the browser needs to start a payment. Never contains secrets. */
+export type CheckoutPayload =
+  | { provider: "mock"; checkoutUrl: string }
+  | {
+    provider: "razorpay";
+    keyId: string;
+    gatewayOrderId: string;
+    amountPaise: string;
+    currency: "INR";
+    prefill: { name?: string; contact?: string; email?: string };
+  };
+
 export interface CreateOrderResult {
   gatewayOrderId: string;
-  checkoutUrl: string;
+  checkout: CheckoutPayload;
 }
+
+export interface BuildCheckoutOptions {
+  gatewayOrderId: string;
+  orderRef: string;
+  amountPaise: bigint;
+  customer?: CheckoutCustomer;
+}
+
+export type NormalisedPaymentStatus = "PAID" | "FAILED" | "OTHER";
 
 export interface NormalisedWebhookEvent {
   eventId: string;
@@ -27,24 +46,31 @@ export interface NormalisedWebhookEvent {
   gatewayOrderId: string;
   gatewayPaymentId: string;
   amountPaise: bigint;
-  status: "PAID" | "FAILED" | "OTHER";
+  status: NormalisedPaymentStatus;
+  occurredAt?: Date;
+  method?: string;
+}
+
+export interface FetchedGatewayPayment {
+  gatewayPaymentId: string;
+  gatewayOrderId: string;
+  amountPaise: bigint;
+  status: NormalisedPaymentStatus;
+  rawStatus: string;
+  occurredAt?: Date;
+  method?: string;
 }
 
 export interface PaymentGateway {
-  /**
-   * Creates an order with the payment provider.
-   */
+  readonly provider: GatewayProvider;
+  readonly signatureHeader: string;
+
   createOrder(options: CreateOrderOptions): Promise<CreateOrderResult>;
+  buildCheckout(options: BuildCheckoutOptions): CheckoutPayload;
 
-  /**
-   * Verifies the authenticity of an incoming webhook payload using timing-safe signature comparison.
-   * Must be called before parsing the body.
-   */
   verifyWebhook(rawBody: string, signature: string): boolean;
+  parseWebhookEvent(rawBody: string, headers?: Headers): NormalisedWebhookEvent;
 
-  /**
-   * Parses and normalises a verified webhook payload into a standardized event format.
-   */
-  parseWebhookEvent(rawBody: string): NormalisedWebhookEvent;
+  verifyCheckoutSignature?(gatewayOrderId: string, gatewayPaymentId: string, signature: string): boolean;
+  fetchPayment?(gatewayPaymentId: string): Promise<FetchedGatewayPayment>;
 }
-

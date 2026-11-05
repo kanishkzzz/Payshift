@@ -1,31 +1,36 @@
-import { PaymentGateway } from "../types";
+import type { PaymentGateway } from "../types";
 import { MockGateway } from "./mock-gateway";
 import { RazorpayGateway } from "./razorpay-gateway";
 
 export * from "./mock-gateway";
 export * from "./razorpay-gateway";
 
-let gatewayInstance: PaymentGateway | null = null;
+let gatewayOverride: PaymentGateway | null = null;
+let cached: { driver: string; instance: PaymentGateway } | null = null;
 
-/**
- * Returns the configured payment gateway instance based on the PAYMENT_GATEWAY environment variable.
- * Defaults to MockGateway if PAYMENT_GATEWAY is unset or "mock".
- */
+/** PAYMENT_GATEWAY = "mock" (default) | "razorpay". */
 export function getPaymentGateway(): PaymentGateway {
-  const driver = (process.env.PAYMENT_GATEWAY || "mock").toLowerCase().trim();
+  if (gatewayOverride) return gatewayOverride;
 
+  const driver = (process.env.PAYMENT_GATEWAY || "mock").toLowerCase().trim();
+  if (cached?.driver === driver) return cached.instance;
+
+  let instance: PaymentGateway;
   if (driver === "razorpay") {
-    return new RazorpayGateway();
+    instance = new RazorpayGateway();
+  } else {
+    if (driver !== "mock") {
+      console.warn(`[Payments] Unknown PAYMENT_GATEWAY "${driver}", falling back to mock.`);
+    }
+    instance = new MockGateway();
   }
 
-  // Default: MockGateway
-  return new MockGateway();
+  cached = { driver, instance };
+  return instance;
 }
 
-/**
- * Overrides the active gateway instance (useful for unit tests).
- */
-export function setTestPaymentGateway(mockGateway: PaymentGateway | null): void {
-  gatewayInstance = mockGateway;
+/** Overrides the active gateway (unit tests). Pass null to reset. */
+export function setTestPaymentGateway(gateway: PaymentGateway | null): void {
+  gatewayOverride = gateway;
+  cached = null;
 }
-
