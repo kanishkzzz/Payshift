@@ -34,6 +34,14 @@ enum PaymentStatus {
   MATCHED
   UNMATCHED
   REFUNDED
+  REJECTED
+}
+
+enum PaymentOrderStatus {
+  CREATED
+  PAID
+  FAILED
+  EXPIRED
 }
 
 enum ReminderStatus {
@@ -70,6 +78,11 @@ enum UserRole {
   COUNSELLOR
 }
 
+enum SubjectType {
+  STAFF
+  PARENT
+}
+
 // ----------------------------------------------------
 // 1. Centres & Academic Batches
 // ----------------------------------------------------
@@ -82,8 +95,9 @@ model Centre {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  batches Batch[]
-  users   User[]
+  batches          Batch[]
+  users            User[]
+  receiptSequences ReceiptSequence[]
 
   @@map("centres")
 }
@@ -119,13 +133,15 @@ model Student {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  batch           Batch            @relation(fields: [batchId], references: [id])
+  batch           Batch              @relation(fields: [batchId], references: [id])
   guardians       Guardian[]
   enrollments     Enrollment[]
   payments        Payment[]
   consents        Consent[]
   riskFlags       RiskFlag[]
   counsellorTasks CounsellorTask[]
+  attendance      AttendanceRecord[]
+  testScores      TestScore[]
 
   @@index([batchId])
   @@index([status])
@@ -138,14 +154,14 @@ model Guardian {
   name          String
   phone         String
   email         String?
-  passwordHash  String?       @map("password_hash")
   relation      String        @default("GUARDIAN")
   preferredLang PreferredLang @default(EN) @map("preferred_lang")
   createdAt     DateTime      @default(now()) @map("created_at")
   updatedAt     DateTime      @updatedAt @map("updated_at")
 
-  student  Student?  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  consents Consent[]
+  student       Student?       @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  consents      Consent[]
+  paymentOrders PaymentOrder[]
 
   @@index([studentId])
   @@index([phone])
@@ -162,8 +178,8 @@ model Consent {
   ipAddress     String?   @map("ip_address")
   withdrawnAt   DateTime? @map("withdrawn_at")
 
-  guardian Guardian @relation(fields: [guardianId], references: [id], onDelete: Cascade)
-  student  Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardian Guardian @relation(fields: [guardianId], references: [id], onDelete: Restrict)
+  student  Student? @relation(fields: [studentId], references: [id], onDelete: Restrict)
 
   @@index([guardianId])
   @@index([studentId])
@@ -199,11 +215,12 @@ model Enrollment {
   enrolledAt     DateTime @default(now()) @map("enrolled_at")
   createdAt      DateTime @default(now()) @map("created_at")
 
-  student     Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  plan        FeePlan      @relation(fields: [planId], references: [id])
+  student     Student      @relation(fields: [studentId], references: [id], onDelete: Restrict)
+  plan        FeePlan      @relation(fields: [planId], references: [id], onDelete: Restrict)
   instalments Instalment[]
   refundCases RefundCase[]
 
+  @@unique([studentId, planId])
   @@index([studentId])
   @@index([planId])
   @@map("enrollments")
@@ -218,9 +235,10 @@ model Instalment {
   graceDays    Int      @default(3) @map("grace_days")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  enrollment  Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
-  allocations Allocation[]
-  reminders   Reminder[]
+  enrollment    Enrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  allocations   Allocation[]
+  reminders     Reminder[]
+  paymentOrders PaymentOrder[]
 
   @@unique([enrollmentId, seq])
   @@index([dueDate])
@@ -230,6 +248,23 @@ model Instalment {
 // ----------------------------------------------------
 // 4. Append-Only Payments, Allocations & Sequential GST Receipts
 // ----------------------------------------------------
+
+model PaymentOrder {
+  id             String             @id @default(cuid())
+  instalmentId   String             @map("instalment_id")
+  guardianId     String             @map("guardian_id")
+  amountPaise    BigInt             @map("amount_paise")
+  gatewayOrderId String             @unique @map("gateway_order_id")
+  status         PaymentOrderStatus @default(CREATED)
+  createdAt      DateTime           @default(now()) @map("created_at")
+
+  instalment Instalment @relation(fields: [instalmentId], references: [id], onDelete: Restrict)
+  guardian   Guardian   @relation(fields: [guardianId], references: [id], onDelete: Restrict)
+
+  @@index([instalmentId])
+  @@index([guardianId])
+  @@map("payment_orders")
+}
 
 model Payment {
   id          String        @id @default(cuid())
@@ -241,7 +276,7 @@ model Payment {
   status      PaymentStatus @default(MATCHED)
   notes       String?
 
-  student     Student?     @relation(fields: [studentId], references: [id], onDelete: SetNull)
+  student     Student?     @relation(fields: [studentId], references: [id], onDelete: Restrict)
   allocations Allocation[]
   receipt     Receipt?
 
@@ -257,8 +292,8 @@ model Allocation {
   amountPaise  BigInt   @map("amount_paise")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  payment    Payment    @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  instalment Instalment @relation(fields: [instalmentId], references: [id], onDelete: Cascade)
+  payment    Payment    @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  instalment Instalment @relation(fields: [instalmentId], references: [id], onDelete: Restrict)
 
   @@index([paymentId])
   @@index([instalmentId])
@@ -274,9 +309,31 @@ model Receipt {
   gstPaise     BigInt   @map("gst_paise")
   issuedAt     DateTime @default(now()) @map("issued_at")
 
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Restrict)
 
   @@map("receipts")
+}
+
+model ReceiptSequence {
+  id            String   @id @default(cuid())
+  centreId      String   @map("centre_id")
+  financialYear String   @map("financial_year")
+  lastSeq       Int      @default(0) @map("last_seq")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  centre Centre @relation(fields: [centreId], references: [id], onDelete: Cascade)
+
+  @@unique([centreId, financialYear])
+  @@map("receipt_sequences")
+}
+
+model ProcessedWebhookEvent {
+  id        String   @id @default(cuid())
+  eventId   String   @unique @map("event_id")
+  source    String   @default("ONLINE_GATEWAY")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("processed_webhook_events")
 }
 
 // ----------------------------------------------------
@@ -313,6 +370,8 @@ model RefundPolicy {
   publishedAt   DateTime @default(now()) @map("published_at")
   createdAt     DateTime @default(now()) @map("created_at")
 
+  refundCases RefundCase[]
+
   @@map("refund_policies")
 }
 
@@ -322,22 +381,59 @@ model RefundCase {
   leaveDate     DateTime     @map("leave_date")
   computedPaise BigInt       @map("computed_paise")
   policyVersion String       @map("policy_version")
+  approvedById  String?      @map("approved_by_id")
+  settledById   String?      @map("settled_by_id")
   status        RefundStatus @default(PENDING)
   paidByDate    DateTime     @map("paid_by_date")
   settledAt     DateTime?    @map("settled_at")
   reason        String?
   createdAt     DateTime     @default(now()) @map("created_at")
 
-  enrollment Enrollment @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
+  refundPolicy RefundPolicy @relation(fields: [policyVersion], references: [version], onDelete: Restrict)
+  approvedBy   User?        @relation("RefundApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  settledBy    User?        @relation("RefundSettler", fields: [settledById], references: [id], onDelete: SetNull)
 
   @@index([enrollmentId])
+  @@index([policyVersion])
+  @@index([approvedById])
+  @@index([settledById])
   @@index([paidByDate, status])
   @@map("refund_cases")
 }
 
 // ----------------------------------------------------
-// 7. Dropout Risk Diagnostics & Counsellor Interventions
+// 7. Academic Performance & Attendance (Dropout Risk Features)
 // ----------------------------------------------------
+
+model AttendanceRecord {
+  id        String   @id @default(cuid())
+  studentId String   @map("student_id")
+  date      DateTime
+  present   Boolean
+  createdAt DateTime @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@unique([studentId, date])
+  @@index([studentId, date])
+  @@map("attendance_records")
+}
+
+model TestScore {
+  id        String   @id @default(cuid())
+  studentId String   @map("student_id")
+  testName  String   @map("test_name")
+  date      DateTime
+  score     Float
+  maxScore  Float    @map("max_score")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Restrict)
+
+  @@index([studentId, date])
+  @@map("test_scores")
+}
 
 model RiskFlag {
   id          String     @id @default(cuid())
@@ -411,8 +507,10 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  centre        Centre?          @relation(fields: [centreId], references: [id], onDelete: SetNull)
-  assignedTasks CounsellorTask[]
+  centre          Centre?          @relation(fields: [centreId], references: [id], onDelete: SetNull)
+  assignedTasks   CounsellorTask[]
+  approvedRefunds RefundCase[]     @relation("RefundApprover")
+  settledRefunds  RefundCase[]     @relation("RefundSettler")
 
   @@index([role])
   @@map("users")
@@ -433,11 +531,6 @@ model OtpSession {
 
   @@index([phone])
   @@map("otp_sessions")
-}
-
-enum SubjectType {
-  STAFF
-  PARENT
 }
 
 model Session {

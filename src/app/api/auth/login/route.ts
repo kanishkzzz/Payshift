@@ -7,15 +7,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const result = await AuthService.login(body, { setCookie: true });
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Login successful",
-        subjectType: result.subjectType,
-        user: result.user,
-      },
-      { status: 200 }
-    );
+    return NextResponse.json(result, { status: 200 });
   } catch (err: unknown) {
     if (err instanceof AuthError) {
       return NextResponse.json(
@@ -31,4 +23,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-
