@@ -2,8 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { ReminderService } from "@/modules/reminders/services/reminder-service";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+
 
 function safeEqual(a: string, b: string): boolean {
     if (!a || !b) return false;

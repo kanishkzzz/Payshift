@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { PaymentError, PaymentService } from "@/modules/payments/services/payment-service";
 
-export const runtime = "nodejs"; // node:crypto
-export const dynamic = "force-dynamic";
+
 
 export async function POST(req: Request) {
     // Signature is computed over the exact raw bytes: never req.json() here.

@@ -3,8 +3,7 @@ import { AuthError, requireStaff } from "@/modules/auth";
 import { calendarDaysDifferenceIST } from "@/modules/ledger/date-utils";
 import { ReportsService } from "@/modules/reports/reports-service";
 
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
+
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 

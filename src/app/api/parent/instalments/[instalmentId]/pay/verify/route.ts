@@ -4,7 +4,6 @@ import { requireParent } from "@/modules/auth";
 import { PaymentService } from "@/modules/payments/services/payment-service";
 import { paymentErrorResponse } from "@/modules/payments/http";
 
-export const runtime = "nodejs";
 
 const bodySchema = z.object({
     razorpay_order_id: z.string().trim().min(1),

@@ -3,7 +3,6 @@ import { z } from "zod";
 import { AuthError, requireStaff } from "@/modules/auth";
 import { RefundError, RefundService } from "@/modules/refunds/refund-service";
 
-export const runtime = "nodejs";
 
 const schema = z.object({ action: z.enum(["approve", "reject", "settle"]) });
 
