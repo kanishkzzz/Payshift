@@ -59,6 +59,12 @@ See [`docs/frontend-actions-and-routes.md`](docs/frontend-actions-and-routes.md)
 
 The database must be reachable before staff login, parent OTP, or the authenticated portals can work. If you see a Neon network or WebSocket handshake error, check the database URL and network access, then restart the dev server.
 
+## Vercel deployment
+
+Configure the required server environment variables in the Vercel project settings; local `.env.local` values are not deployed. At minimum, set `DATABASE_URL`, `DIRECT_URL`, `NEXT_PUBLIC_APP_URL`, and `CRON_SECRET`. For real payments, set `PAYMENT_GATEWAY=razorpay`, add the Razorpay credentials, and configure the Razorpay webhook to call `/api/webhooks/payments` with the matching webhook secret.
+
+Before serving traffic after a schema change, run `npm run db:migrate` against the production database from a trusted environment with the production `DIRECT_URL`. Vercel builds do not change the database schema. The scheduled reminder job calls `/api/cron` once per day and requires `CRON_SECRET`.
+
 ## Demo sign-in
 
 The seed script creates the following local staff accounts. They are for development only:
@@ -81,13 +87,15 @@ Copy `.env.example` to `.env` and configure the values for your environment. The
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL connection used by the app. |
 | `DIRECT_URL` | Direct database connection used by Prisma CLI and preferred by the Prisma client configuration. |
-| `AUTH_SECRET` | Secret used by authentication/session helpers. Use a long, unique value. |
 | `NEXT_PUBLIC_APP_URL` | Base URL of the app, such as `http://localhost:3000`. |
 | `PAYMENT_GATEWAY` | Selects the `mock` or `razorpay` payment integration. |
 | `MOCK_GATEWAY_SECRET`, `MOCK_PAYMENT_WEBHOOK_SECRET` | Secrets for the mock payment integration and webhook verification. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Razorpay test or production credentials, when using Razorpay. |
 | `CRON_SECRET` | Bearer secret required by the scheduled reminder endpoint. |
 | `MOCK_SMS_GATEWAY_API_KEY` | Placeholder only. There is no SMS integration yet. |
+| `RAZORPAY_SETTLE_ON_VERIFY` | Enables settlement during checkout verification when set to `true`; otherwise configure the Razorpay webhook for authoritative settlement. |
+| `RISK_LLM_PROVIDER` | Keep set to `mock`; other providers are not implemented. |
+| `INSTITUTE_NAME` | Optional institute label used in parent-facing receipts and reminders. |
 
 Never put real credentials in source control or expose server-only secrets through `NEXT_PUBLIC_` variables.
 
@@ -102,6 +110,7 @@ Never put real credentials in source control or expose server-only secrets throu
 | `npm run typecheck` | Run TypeScript checking. |
 | `npm run db:generate` | Generate the Prisma client. |
 | `npm run db:push` | Apply the Prisma schema to the configured database. |
+| `npm run db:migrate` | Apply committed migrations to the configured database (use for deployments). |
 | `npm run db:seed` | Load demo institutes, staff accounts, and student/fee data. |
 | `npm run db:studio` | Open Prisma Studio for the configured database. |
 | `npm test` | Run the Vitest suite. |
