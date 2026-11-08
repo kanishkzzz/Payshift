@@ -15,6 +15,11 @@ const eslintConfig = defineConfig([
       "no-restricted-imports": [
         "error",
         {
+          paths: [
+            "@/modules/ledger",
+            "@/modules/ledger/index",
+            "@/modules/ledger/student-ledger",
+          ],
           patterns: [
             {
               group: [
@@ -28,11 +33,6 @@ const eslintConfig = defineConfig([
                 "@/modules/parent/*",
                 "@/modules/reports",
                 "@/modules/reports/*",
-                "@/modules/ledger",
-                "@/modules/ledger/*",
-                "!@/modules/ledger/ledger-math",
-                "!@/modules/ledger/date-utils",
-                "!@/modules/ledger/types",
                 "../*",
               ],
               message:

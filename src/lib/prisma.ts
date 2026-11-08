@@ -3,9 +3,9 @@ import { PrismaNeon } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
 
 const connectionString =
-  process.env.DIRECT_URL ||
+  process.env.DATABASE_URL_POOLED ||
   process.env.DATABASE_URL ||
-  process.env.DATABASE_URL_POOLED;
+  process.env.DIRECT_URL;
 
 if (!connectionString) {
   throw new Error("Missing DATABASE_URL / DIRECT_URL in environment");

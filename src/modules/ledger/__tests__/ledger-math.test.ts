@@ -552,7 +552,7 @@ describe("allocatePayment", () => {
 
     expect(result.totalAllocatedRupee).toBe(15000);
     expect(inst1.amountRupee).toBe(15000);
-    expect((inst1 as any).paidRupee).toBeUndefined();
+    expect("paidRupee" in inst1).toBe(false);
     expect(originalArray[0]).toBe(inst1);
   });
 });

@@ -38,6 +38,21 @@ function unixToDate(value: unknown): Date | undefined {
   return typeof value === "number" && Number.isFinite(value) ? new Date(value * 1000) : undefined;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function recordOrEmpty(value: unknown): Record<string, unknown> {
+  return isRecord(value) ? value : {};
+}
+
+function amountToBigInt(value: unknown): bigint {
+  if (typeof value === "bigint") return value;
+  if (typeof value === "string" && /^\d+$/.test(value)) return BigInt(value);
+  if (typeof value === "number" && Number.isSafeInteger(value) && value >= 0) return BigInt(value);
+  return BigInt(0);
+}
+
 function describeRazorpayError(err: unknown): string {
   const e = err as { error?: { description?: string }; message?: string };
   return e?.error?.description ?? e?.message ?? "unknown error";
@@ -134,16 +149,21 @@ export class RazorpayGateway implements PaymentGateway {
   }
 
   parseWebhookEvent(rawBody: string, headers?: Headers): NormalisedWebhookEvent {
-    let payload: any;
+    let payload: Record<string, unknown>;
     try {
-      payload = JSON.parse(rawBody);
+      const parsed: unknown = JSON.parse(rawBody);
+      if (!isRecord(parsed)) throw new Error("Expected an object payload");
+      payload = parsed;
     } catch {
       throw new Error("Invalid JSON in Razorpay webhook payload");
     }
 
     const event = String(payload?.event ?? "");
-    const payment = payload?.payload?.payment?.entity ?? {};
-    const order = payload?.payload?.order?.entity ?? {};
+    const eventPayload = recordOrEmpty(payload.payload);
+    const paymentEnvelope = recordOrEmpty(eventPayload.payment);
+    const orderEnvelope = recordOrEmpty(eventPayload.order);
+    const payment = recordOrEmpty(paymentEnvelope.entity);
+    const order = recordOrEmpty(orderEnvelope.entity);
 
     const gatewayPaymentId = String(payment.id ?? "");
     const gatewayOrderId = String(payment.order_id ?? order.id ?? "");
@@ -151,14 +171,14 @@ export class RazorpayGateway implements PaymentGateway {
     const headerEventId = headers?.get("x-razorpay-event-id")?.trim();
     const eventId = headerEventId || `${event}:${gatewayPaymentId || gatewayOrderId}:${payload?.created_at ?? ""}`;
 
-    const rawAmount = payment.amount ?? order.amount_paid ?? order.amount ?? 0;
+    const rawAmount = payment.amount ?? order.amount_paid ?? order.amount;
 
     return {
       eventId,
       type: event,
       gatewayOrderId,
       gatewayPaymentId,
-      amountPaise: BigInt(rawAmount),
+      amountPaise: amountToBigInt(rawAmount),
       status: mapEventStatus(event),
       occurredAt: unixToDate(payment.created_at) ?? unixToDate(payload?.created_at),
       method: typeof payment.method === "string" ? payment.method : undefined,
@@ -167,7 +187,14 @@ export class RazorpayGateway implements PaymentGateway {
 
   async fetchPayment(gatewayPaymentId: string): Promise<FetchedGatewayPayment> {
     const client = this.getClient();
-    let p: any;
+    let p: {
+      id?: string;
+      order_id?: string | null;
+      amount?: number | string;
+      status?: string;
+      created_at?: number;
+      method?: string;
+    };
     try {
       p = await client.payments.fetch(gatewayPaymentId);
     } catch (err) {

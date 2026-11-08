@@ -85,8 +85,9 @@ Copy `.env.example` to `.env` and configure the values for your environment. The
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | PostgreSQL connection used by the app. |
-| `DIRECT_URL` | Direct database connection used by Prisma CLI and preferred by the Prisma client configuration. |
+| `DATABASE_URL` | Pooled PostgreSQL connection used by the app and integration tests. |
+| `DATABASE_URL_POOLED` | Optional pooled URL alias; takes precedence over `DATABASE_URL` at runtime. |
+| `DIRECT_URL` | Direct database connection used by Prisma CLI migrations and as a runtime fallback. |
 | `NEXT_PUBLIC_APP_URL` | Base URL of the app, such as `http://localhost:3000`. |
 | `PAYMENT_GATEWAY` | Selects the `mock` or `razorpay` payment integration. |
 | `MOCK_GATEWAY_SECRET`, `MOCK_PAYMENT_WEBHOOK_SECRET` | Secrets for the mock payment integration and webhook verification. |

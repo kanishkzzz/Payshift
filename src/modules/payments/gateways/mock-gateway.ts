@@ -78,9 +78,13 @@ export class MockGateway implements PaymentGateway {
   }
 
   parseWebhookEvent(rawBody: string, headers?: Headers): NormalisedWebhookEvent {
-    let payload: any;
+    let payload: Record<string, unknown>;
     try {
-      payload = JSON.parse(rawBody);
+      const parsed: unknown = JSON.parse(rawBody);
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        throw new Error("Expected an object payload");
+      }
+      payload = parsed as Record<string, unknown>;
     } catch {
       throw new Error("Invalid JSON in mock webhook payload");
     }
@@ -95,12 +99,22 @@ export class MockGateway implements PaymentGateway {
     if (payload.status === "FAILED" || type.includes("failed")) status = "FAILED";
     else if (payload.status === "PAID" || type.includes("captured") || type.includes("paid")) status = "PAID";
 
+    const rawAmount = payload.amountPaise ?? payload.amount;
+    const amountPaise =
+      typeof rawAmount === "bigint"
+        ? rawAmount
+        : typeof rawAmount === "string" && /^\d+$/.test(rawAmount)
+          ? BigInt(rawAmount)
+          : typeof rawAmount === "number" && Number.isSafeInteger(rawAmount) && rawAmount >= 0
+            ? BigInt(rawAmount)
+            : BigInt(0);
+
     return {
       eventId,
       type,
       gatewayOrderId: String(payload.gatewayOrderId || payload.orderId || ""),
       gatewayPaymentId,
-      amountPaise: BigInt(payload.amountPaise ?? payload.amount ?? 0),
+      amountPaise,
       status,
       occurredAt: new Date(),
     };

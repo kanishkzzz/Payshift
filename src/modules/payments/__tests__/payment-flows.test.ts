@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { PaymentService, PaymentError } from "../services/payment-service";
@@ -187,7 +188,6 @@ describe("Tracky Payment Engine & Webhook Architecture", () => {
       });
 
       // Compute valid HMAC with matching secret
-      const crypto = require("crypto");
       const validSig = crypto
         .createHmac("sha256", "test_razorpay_secret_123")
         .update(rawPayload)
@@ -551,7 +551,8 @@ describe("Tracky Payment Engine & Webhook Architecture", () => {
       const json = await res.json();
       expect(json.success).toBe(true);
       expect(json.count).toBeGreaterThan(0);
-      expect(json.payments.some((p: any) => p.id === testUnmatchedPaymentId)).toBe(true);
+      const payments = json.payments as Array<{ id: string }>;
+      expect(payments.some((payment) => payment.id === testUnmatchedPaymentId)).toBe(true);
     });
 
     it("manually matches payment to a student in a single atomic transaction with audit log", async () => {

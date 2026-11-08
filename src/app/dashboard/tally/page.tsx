@@ -1,20 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Download, FileSpreadsheet, LoaderCircle, ShieldCheck } from "lucide-react";
 import { PortalError, PortalLoading, PortalShell, useStaffAccess } from "@/components/portal/PortalShell";
 
-const today = new Date().toISOString().slice(0, 10);
-const monthStart = `${today.slice(0, 8)}01`;
-
 export default function TallyExportPage() {
   const { user, loading, allowed } = useStaffAccess(["ACCOUNTS", "ADMIN"]);
-  const [from, setFrom] = useState(monthStart);
-  const [to, setTo] = useState(today);
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const frame = requestAnimationFrame(() => {
+      setFrom(`${today.slice(0, 8)}01`);
+      setTo(today);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   async function exportCsv(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(""); setNotice("");
