@@ -61,7 +61,7 @@ The database must be reachable before staff login, parent OTP, or the authentica
 
 ## Vercel deployment
 
-Configure the required server environment variables in the Vercel project settings; local `.env.local` values are not deployed. At minimum, set `DATABASE_URL`, `DIRECT_URL`, `NEXT_PUBLIC_APP_URL`, and `CRON_SECRET`. For real payments, set `PAYMENT_GATEWAY=razorpay`, add the Razorpay credentials, and configure the Razorpay webhook to call `/api/webhooks/payments` with the matching webhook secret.
+Configure the required server environment variables in the Vercel project settings; local `.env.local` values are not deployed. At minimum, set `DATABASE_URL`, `DIRECT_URL`, `NEXT_PUBLIC_APP_URL`, and `CRON_SECRET`. To enable parent profile photo uploads, connect a Vercel Blob store and set `BLOB_READ_WRITE_TOKEN`. For real payments, set `PAYMENT_GATEWAY=razorpay`, add the Razorpay credentials, and configure the Razorpay webhook to call `/api/webhooks/payments` with the matching webhook secret.
 
 Before serving traffic after a schema change, run `npm run db:migrate` against the production database from a trusted environment with the production `DIRECT_URL`. Vercel builds do not change the database schema. The scheduled reminder job calls `/api/cron` once per day and requires `CRON_SECRET`.
 
@@ -75,7 +75,7 @@ The seed script creates the following local staff accounts. They are for develop
 | Counsellor | `counsellor@tracky.edu` | `Staff@123` |
 | Admin | `admin@tracky.edu` | `Staff@123` |
 
-The demo parent phone number is `+919876543210`. In non-production mode, the OTP appears on the login page and in the development server output. No SMS provider is integrated, so an SMS will not arrive. A valid OTP for a phone number that is not registered continues to parent signup.
+The demo parent phone number is `+910000000001`. In non-production mode, the OTP appears on the login page and in the development server output. No SMS provider is integrated, so an SMS will not arrive. For a public reviewer deployment, set `DEMO_PARENT_PHONE` and `DEMO_PARENT_OTP` in Vercel for this seeded parent. Production uses the configured six-digit code only for the exact demo phone and only when its seeded guardian exists. Keep this enabled only with an isolated demo database containing synthetic records.
 
 Staff demo accounts are available only after `npm run db:seed` has completed successfully against the same database used by the app.
 
@@ -89,6 +89,7 @@ Copy `.env.example` to `.env` and configure the values for your environment. The
 | `DATABASE_URL_POOLED` | Optional pooled URL alias; takes precedence over `DATABASE_URL` at runtime. |
 | `DIRECT_URL` | Direct database connection used by Prisma CLI migrations and as a runtime fallback. |
 | `NEXT_PUBLIC_APP_URL` | Base URL of the app, such as `http://localhost:3000`. |
+| `DEMO_PARENT_PHONE`, `DEMO_PARENT_OTP` | Optional production reviewer OTP restricted to one seeded synthetic parent account. |
 | `PAYMENT_GATEWAY` | Selects the `mock` or `razorpay` payment integration. |
 | `MOCK_GATEWAY_SECRET`, `MOCK_PAYMENT_WEBHOOK_SECRET` | Secrets for the mock payment integration and webhook verification. |
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET` | Razorpay test or production credentials, when using Razorpay. |

@@ -23,10 +23,6 @@ function randomInt(min: number, max: number): number {
   return Math.floor(rng() * (max - min + 1)) + min;
 }
 
-function randomChoice<T>(items: readonly T[]): T {
-  return items[Math.floor(rng() * items.length)];
-}
-
 const FIRST_NAMES = [
   "Aditya", "Ananya", "Aryan", "Diya", "Ishaan", "Kavya", "Manish", "Meera",
   "Neha", "Nikhil", "Pooja", "Pranav", "Rahul", "Rhea", "Rishi", "Sakshi",
@@ -279,7 +275,7 @@ async function main() {
       id: "grd_stu_0587",
       studentId: stu0587.id,
       name: "Rajesh Sharma",
-      phone: "+919876543210",
+      phone: "+910000000001",
       email: "rajesh.sharma@example.com",
       relation: "FATHER",
       preferredLang: "HI",
@@ -292,7 +288,7 @@ async function main() {
       guardianId: grd0587.id,
       studentId: stu0587.id,
       noticeVersion: "v2026.1",
-      ipAddress: "49.36.128.45",
+      ipAddress: "192.0.2.1",
       grantedAt: new Date("2026-06-02T10:30:00.000Z"),
     },
   });
@@ -469,7 +465,7 @@ async function main() {
       id: "grd_stu_0412",
       studentId: stu0412.id,
       name: "Suresh Patel",
-      phone: "+919876543211",
+      phone: "+910000000002",
       email: "suresh.patel@example.com",
       relation: "FATHER",
       preferredLang: "EN",
@@ -482,7 +478,7 @@ async function main() {
       guardianId: grd0412.id,
       studentId: stu0412.id,
       noticeVersion: "v2026.1",
-      ipAddress: "49.36.128.46",
+      ipAddress: "192.0.2.2",
       grantedAt: new Date("2026-06-05T09:00:00.000Z"),
     },
   });
@@ -630,7 +626,7 @@ async function main() {
       id: "grd_stu_0219",
       studentId: stu0219.id,
       name: "Anil Gupta",
-      phone: "+919876543212",
+      phone: "+910000000003",
       email: "anil.gupta@example.com",
       relation: "FATHER",
       preferredLang: "EN",
@@ -643,7 +639,7 @@ async function main() {
       guardianId: grd0219.id,
       studentId: stu0219.id,
       noticeVersion: "v2026.1",
-      ipAddress: "49.36.128.47",
+      ipAddress: "192.0.2.3",
       grantedAt: new Date("2026-07-01T10:00:00.000Z"),
     },
   });
@@ -765,7 +761,7 @@ async function main() {
       const parentPrefix = PARENT_PREFIXES[(studentNum * 3) % PARENT_PREFIXES.length];
       const guardianName = `${parentPrefix}${firstName} ${lastName}`;
       const guardianId = `grd_${studentId.toLowerCase()}`;
-      const phone = `+91981000${String(studentNum).padStart(4, "0")}`;
+      const phone = `+91000000${String(studentNum).padStart(4, "0")}`;
       const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}${studentNum}@example.com`;
       const preferredLang = studentNum % 3 === 0 ? "HI" : "EN";
 
@@ -798,7 +794,7 @@ async function main() {
         guardianId: guardianId,
         studentId: studentId,
         noticeVersion: "v2026.1",
-        ipAddress: `49.36.${100 + (studentNum % 50)}.${10 + (studentNum % 200)}`,
+        ipAddress: `203.0.113.${10 + (studentNum % 200)}`,
         grantedAt: new Date("2026-06-01T10:00:00.000Z"),
       });
 

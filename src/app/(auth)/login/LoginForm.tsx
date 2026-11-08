@@ -80,8 +80,8 @@ export default function LoginForm({ initialMode = "PARENT" }: { initialMode?: "P
       }
 
       if (data.registered === false) {
-        // Unregistered parent with valid OTP
-        router.push(`/signup?phone=${encodeURIComponent(phone)}`);
+        // Phone is verified; finish creating the parent profile without another OTP request.
+        router.push(`/signup?phone=${encodeURIComponent(phone)}&verified=1`);
         return;
       }
 
@@ -174,7 +174,7 @@ export default function LoginForm({ initialMode = "PARENT" }: { initialMode?: "P
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="+919876543210"
+                placeholder="+910000000001"
                 className="w-full px-3.5 py-2.5 rounded-lg tracky-auth-input border text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7164e8] text-sm transition"
               />
             </div>

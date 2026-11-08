@@ -76,6 +76,7 @@ export interface ParentAuthUser {
   name: string;
   phone: string;
   email: string | null;
+  avatarUrl: string | null;
   relation: string;
   studentId: string | null;
   preferredLang: PreferredLang;

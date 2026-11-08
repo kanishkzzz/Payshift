@@ -33,6 +33,7 @@ interface Receipt {
   id: string;
   receiptNo: string;
   issuedAt: string;
+  studentId: string | null;
   studentName: string | null;
   amountPaise: string;
   source: string;
@@ -47,6 +48,7 @@ export default function ParentDuesPage() {
   const { user, loading: sessionLoading } = usePortalSession();
   const [students, setStudents] = useState<StudentDues[]>([]);
   const [receipts, setReceipts] = useState<Receipt[]>([]);
+  const [activeStudentId, setActiveStudentId] = useState("ALL");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -74,11 +76,26 @@ export default function ParentDuesPage() {
 
   if (sessionLoading || !user || user.subjectType !== "PARENT") return <PortalLoading />;
 
+  const visibleStudents = activeStudentId === "ALL"
+    ? students
+    : students.filter((student) => student.studentId === activeStudentId);
+  const visibleReceipts = activeStudentId === "ALL"
+    ? receipts
+    : receipts.filter((receipt) => receipt.studentId === activeStudentId);
+
   return (
     <PortalShell user={user} title="Your fee overview" description="See upcoming instalments and find receipts for students linked to your account.">
       {loading ? <PortalLoading /> : error ? <PortalError message={error} /> : students.length === 0 ? <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center"><h2 className="font-semibold">No linked student records yet</h2><p className="mt-2 text-sm text-slate-500">If you expected to see a student here, contact your institute’s accounts team.</p></div> : (
         <div className="space-y-6">
-          {students.map((student) => (
+          {students.length > 1 && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:px-5">
+            <div><p className="text-sm font-semibold">Student fees</p><p className="mt-1 text-xs text-slate-500">Choose which child’s fee details to view.</p></div>
+            <label htmlFor="parent-student-switcher" className="sr-only">Choose a child</label>
+            <select id="parent-student-switcher" value={activeStudentId} onChange={(event) => setActiveStudentId(event.target.value)} className="min-h-10 min-w-52 rounded-lg border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100">
+              <option value="ALL">All children</option>
+              {students.map((student) => <option key={student.studentId} value={student.studentId}>{student.studentName}</option>)}
+            </select>
+          </div>}
+          {visibleStudents.map((student) => (
             <section key={student.studentId} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
               <div className="flex flex-col justify-between gap-5 bg-gradient-to-br from-[#eff2ff] via-white to-[#f4edff] p-5 sm:flex-row sm:items-center sm:p-7">
                 <div><p className="text-xs font-semibold text-slate-500">{student.studentId} · {student.batchName ?? "Student account"}</p><h2 className="mt-1 text-2xl font-bold tracking-tight">{student.studentName}</h2><p className="mt-2 text-sm text-slate-600">{student.isFullyPaid ? "All recorded instalments are paid." : student.daysOverdue > 0 ? `${student.daysOverdue} days overdue` : `Next due ${date(student.nextDue?.dueDate ?? null)}`}</p></div>
@@ -92,7 +109,7 @@ export default function ParentDuesPage() {
               </div>
             </section>
           ))}
-          <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7"><div className="mb-4 flex items-center gap-2"><FileText className="h-4 w-4 text-[#5470ff]" /><h2 className="font-semibold">Receipts</h2></div><p className="-mt-2 mb-3 text-xs text-slate-500">Receipts open in a print-ready page. Use your browser’s Print command to save a copy as PDF.</p>{receipts.length === 0 ? <p className="text-sm text-slate-500">Receipts will appear here after a payment is recorded.</p> : <div className="divide-y divide-slate-100">{receipts.map((receipt) => <div key={receipt.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="text-sm font-semibold">{receipt.receiptNo}</p><p className="mt-1 text-xs text-slate-500">{receipt.studentName ?? "Student"} · {date(receipt.issuedAt)} · {receipt.source}</p></div><div className="flex items-center gap-3"><strong className="text-sm">{currencyPaise(receipt.amountPaise)}</strong><a href={`/api/parent/receipts/${encodeURIComponent(receipt.id)}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">View receipt <ArrowUpRight className="h-3.5 w-3.5" /><span className="sr-only">receipt {receipt.receiptNo} in a new tab</span></a></div></div>)}</div>}</section>
+          <section className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-7"><div className="mb-4 flex items-center gap-2"><FileText className="h-4 w-4 text-[#5470ff]" /><h2 className="font-semibold">Receipts</h2></div><p className="-mt-2 mb-3 text-xs text-slate-500">Receipts open in a print-ready page. Use your browser’s Print command to save a copy as PDF.</p>{visibleReceipts.length === 0 ? <p className="text-sm text-slate-500">{activeStudentId === "ALL" ? "Receipts will appear here after a payment is recorded." : "No receipts are recorded for this child yet."}</p> : <div className="divide-y divide-slate-100">{visibleReceipts.map((receipt) => <div key={receipt.id} className="flex flex-wrap items-center justify-between gap-3 py-3"><div><p className="text-sm font-semibold">{receipt.receiptNo}</p><p className="mt-1 text-xs text-slate-500">{receipt.studentName ?? "Student"} · {date(receipt.issuedAt)} · {receipt.source}</p></div><div className="flex items-center gap-3"><strong className="text-sm">{currencyPaise(receipt.amountPaise)}</strong><a href={`/api/parent/receipts/${encodeURIComponent(receipt.id)}`} target="_blank" rel="noreferrer" className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">View receipt <ArrowUpRight className="h-3.5 w-3.5" /><span className="sr-only">receipt {receipt.receiptNo} in a new tab</span></a></div></div>)}</div>}</section>
         </div>
       )}
     </PortalShell>

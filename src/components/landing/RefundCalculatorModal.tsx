@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Calculator, CheckCircle2 } from "lucide-react";
 import { useAccessibleDialog } from "@/components/landing/useAccessibleDialog";
+import { normalizeWholeNumberInput, wholeNumberValue } from "@/lib/numeric-input";
 
 interface RefundCalculatorModalProps {
   isOpen: boolean;
@@ -16,18 +17,22 @@ export default function RefundCalculatorModal({
   lang = "en",
 }: RefundCalculatorModalProps) {
   const dialogRef = useAccessibleDialog<HTMLDivElement>(isOpen, onClose);
-  const [amountPaid, setAmountPaid] = useState<number>(50000);
-  const [regFee, setRegFee] = useState<number>(5000);
-  const [totalCourseDays, setTotalCourseDays] = useState<number>(180);
-  const [attendedDays, setAttendedDays] = useState<number>(30);
+  const [amountPaidInput, setAmountPaidInput] = useState("50000");
+  const [regFeeInput, setRegFeeInput] = useState("5000");
+  const [totalCourseDaysInput, setTotalCourseDaysInput] = useState("180");
+  const [attendedDaysInput, setAttendedDaysInput] = useState("30");
   const [coolingOff, setCoolingOff] = useState<boolean>(false);
 
   if (!isOpen) return null;
 
   // Calculation
+  const amountPaid = wholeNumberValue(amountPaidInput);
+  const regFee = wholeNumberValue(regFeeInput);
+  const totalCourseDays = wholeNumberValue(totalCourseDaysInput);
+  const attendedDays = wholeNumberValue(attendedDaysInput);
   const nonRefundable = regFee < amountPaid ? regFee : amountPaid;
   const base = Math.max(0, amountPaid - nonRefundable);
-  const remainingDays = Math.max(0, totalCourseDays - attendedDays);
+  const remainingDays = Math.max(0, totalCourseDays - Math.min(attendedDays, totalCourseDays));
 
   let refundAmount = 0;
   let basis = "PRO_RATA";
@@ -35,7 +40,7 @@ export default function RefundCalculatorModal({
   if (coolingOff) {
     refundAmount = base;
     basis = "COOLING_OFF";
-  } else if (remainingDays === 0) {
+  } else if (remainingDays === 0 || totalCourseDays === 0) {
     refundAmount = 0;
     basis = "COURSE_ENDED";
   } else {
@@ -85,11 +90,10 @@ export default function RefundCalculatorModal({
             <input
               id="refund-amount-paid"
               aria-label="Total fee paid in rupees"
-              min={0}
-              step={1}
-              type="number"
-              value={amountPaid}
-              onChange={(e) => setAmountPaid(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              inputMode="numeric"
+              type="text"
+              value={amountPaidInput}
+              onChange={(e) => setAmountPaidInput(normalizeWholeNumberInput(e.target.value))}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-950 transition-colors focus:border-[#5470ff] focus:outline-none"
             />
           </div>
@@ -101,11 +105,10 @@ export default function RefundCalculatorModal({
             <input
               id="refund-registration-fee"
               aria-label="Registration fee in rupees"
-              min={0}
-              step={1}
-              type="number"
-              value={regFee}
-              onChange={(e) => setRegFee(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              inputMode="numeric"
+              type="text"
+              value={regFeeInput}
+              onChange={(e) => setRegFeeInput(normalizeWholeNumberInput(e.target.value))}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-950 transition-colors focus:border-[#5470ff] focus:outline-none"
             />
           </div>
@@ -117,11 +120,10 @@ export default function RefundCalculatorModal({
             <input
               id="refund-course-days"
               aria-label="Total course duration in days"
-              min={1}
-              step={1}
-              type="number"
-              value={totalCourseDays}
-              onChange={(e) => setTotalCourseDays(Math.max(1, Math.floor(Number(e.target.value) || 1)))}
+              inputMode="numeric"
+              type="text"
+              value={totalCourseDaysInput}
+              onChange={(e) => setTotalCourseDaysInput(normalizeWholeNumberInput(e.target.value))}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-950 transition-colors focus:border-[#5470ff] focus:outline-none"
             />
           </div>
@@ -133,12 +135,10 @@ export default function RefundCalculatorModal({
             <input
               id="refund-days-attended"
               aria-label="Days attended or elapsed"
-              min={0}
-              max={totalCourseDays}
-              step={1}
-              type="number"
-              value={attendedDays}
-              onChange={(e) => setAttendedDays(Math.min(totalCourseDays, Math.max(0, Math.floor(Number(e.target.value) || 0))))}
+              inputMode="numeric"
+              type="text"
+              value={attendedDaysInput}
+              onChange={(e) => setAttendedDaysInput(normalizeWholeNumberInput(e.target.value))}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-950 transition-colors focus:border-[#5470ff] focus:outline-none"
             />
           </div>

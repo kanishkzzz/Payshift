@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowLeft, BarChart3, BriefcaseBusiness, CreditCard, FileClock, Languages, LogOut, Receipt, UsersRound } from "lucide-react";
+import { ArrowLeft, BarChart3, BriefcaseBusiness, CircleUserRound, CreditCard, FileClock, Languages, LogOut, Receipt, UsersRound } from "lucide-react";
 import TrackyBrandIcon from "@/components/TrackyBrandIcon";
 
 export interface PortalUser {
@@ -11,6 +11,7 @@ export interface PortalUser {
   name: string;
   email?: string | null;
   phone?: string;
+  avatarUrl?: string | null;
   role?: "ADMIN" | "ACCOUNTS" | "COUNSELLOR";
   subjectType: "PARENT" | "STAFF";
 }
@@ -35,7 +36,7 @@ export function usePortalSession() {
     return () => { active = false; };
   }, [router]);
 
-  return { user, loading };
+  return { user, loading, setUser };
 }
 
 export function useStaffAccess(roles: Array<NonNullable<PortalUser["role"]>>) {
@@ -90,12 +91,15 @@ export function PortalShell({
             <span className="font-bold tracking-tight">tracky</span>
           </Link>
           <div className="flex items-center gap-2 sm:gap-4">
-            <span className="hidden text-right sm:block"><span className="block text-xs font-semibold">{user.name}</span><span className="text-[10px] text-slate-500">{user.role ?? "Parent"}</span></span>
+            {user.subjectType === "PARENT" ? <Link href="/parent/profile" className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2 transition hover:bg-slate-50" aria-label="Open parent profile">
+              <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-slate-200 bg-indigo-50 text-xs font-bold text-indigo-700">{user.avatarUrl ? <span aria-hidden="true" className="h-full w-full bg-cover bg-center" style={{ backgroundImage: `url("${user.avatarUrl}")` }} /> : <CircleUserRound className="h-5 w-5" />}</span>
+              <span className="hidden text-right sm:block"><span className="block text-xs font-semibold">{user.name.trim().split(/\s+/)[0] || user.name}</span><span className="text-[10px] text-slate-500">Parent</span></span>
+            </Link> : <span className="hidden text-right sm:block"><span className="block text-xs font-semibold">{user.name}</span><span className="text-[10px] text-slate-500">{user.role}</span></span>}
             <button type="button" onClick={signOut} disabled={signingOut} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"><LogOut className="h-4 w-4" /><span>{signingOut ? "Signing outâ€¦" : "Sign out"}</span></button>
           </div>
         </div>
         <nav aria-label="Workspace" className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2 sm:px-6">
-          {user.subjectType === "PARENT" ? <><NavItem href="/parent/dues" icon={<Receipt className="h-3.5 w-3.5" />}>Fee overview</NavItem><NavItem href="/parent/preferences" icon={<Languages className="h-3.5 w-3.5" />}>Message preferences</NavItem></> : <>
+          {user.subjectType === "PARENT" ? <><NavItem href="/parent/dues" icon={<Receipt className="h-3.5 w-3.5" />}>Fee overview</NavItem><NavItem href="/parent/preferences" icon={<Languages className="h-3.5 w-3.5" />}>Message preferences</NavItem><NavItem href="/parent/profile" icon={<CircleUserRound className="h-3.5 w-3.5" />}>Profile</NavItem></> : <>
             {isAccounts && <><NavItem href="/dashboard" icon={<BarChart3 className="h-3.5 w-3.5" />}>Overview</NavItem><NavItem href="/dashboard/unmatched" icon={<CreditCard className="h-3.5 w-3.5" />}>Unmatched</NavItem><NavItem href="/dashboard/refunds" icon={<FileClock className="h-3.5 w-3.5" />}>Refunds</NavItem><NavItem href="/dashboard/tally" icon={<BriefcaseBusiness className="h-3.5 w-3.5" />}>Exports</NavItem></>}
             {isCounsellor && <NavItem href="/counsellor" icon={<UsersRound className="h-3.5 w-3.5" />}>Counsellor workspace</NavItem>}
           </>}

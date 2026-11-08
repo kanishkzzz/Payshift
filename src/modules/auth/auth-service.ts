@@ -25,6 +25,7 @@ import {
   AuthError,
 } from "./types";
 import { SubjectType } from "@prisma/client";
+import { DemoOtpConfigurationError, generateOtpForPhone } from "./otp-utils";
 
 function hashOtp(otp: string): string {
   return crypto.createHash("sha256").update(otp).digest("hex");
@@ -58,11 +59,20 @@ export class AuthService {
       );
     }
 
-    // 2. Generate 6-digit OTP code (mockable in dev/test)
-    const otp =
-      process.env.NODE_ENV === "test"
-        ? "123456"
-        : Math.floor(100000 + Math.random() * 900000).toString();
+    // 2. Generate a code; production fixed codes are restricted to the configured demo phone.
+    let otp: string;
+    let isDemoOtp: boolean;
+    try {
+      ({ otp, isDemoOtp } = generateOtpForPhone(phone));
+    } catch (error) {
+      if (error instanceof DemoOtpConfigurationError) throw new AuthError(error.message, 503);
+      throw error;
+    }
+
+    const guardianExists = await prisma.guardian.findFirst({ where: { phone } });
+    if (isDemoOtp && !guardianExists) {
+      throw new AuthError("The reviewer parent account is not available. Contact the demo owner.", 503);
+    }
 
     const otpHash = hashOtp(otp);
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes validity
@@ -82,10 +92,6 @@ export class AuthService {
     if (process.env.NODE_ENV !== "production") {
       console.log(`[DEV OTP] Generated OTP for ${phone}: ${otp}`);
     }
-
-    const guardianExists = await prisma.guardian.findFirst({
-      where: { phone },
-    });
 
     return {
       success: true,
@@ -187,6 +193,7 @@ export class AuthService {
       name: guardian.name,
       phone: guardian.phone,
       email: guardian.email,
+      avatarUrl: guardian.avatarUrl,
       relation: guardian.relation,
       studentId: guardian.studentId,
       preferredLang: guardian.preferredLang,
@@ -220,7 +227,8 @@ export class AuthService {
     const email = parsed.data.email ? parsed.data.email.toLowerCase().trim() : null;
     const studentId = parsed.data.studentId?.trim() || null;
 
-    // 1. If OTP provided, verify it first
+    // 1. Verify the phone either with the submitted OTP or a recent OTP
+    // already verified during the login flow before redirecting to registration.
     if (otp) {
       const otpSession = await prisma.otpSession.findFirst({
         where: {
@@ -239,6 +247,19 @@ export class AuthService {
         where: { id: otpSession.id },
         data: { verified: true },
       });
+    } else {
+      const verifiedSession = await prisma.otpSession.findFirst({
+        where: {
+          phone,
+          verified: true,
+          expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (!verifiedSession) {
+        throw new AuthError("Please verify your phone number before creating an account.", 400);
+      }
     }
 
     // 2. Prevent conflict with staff accounts
@@ -313,6 +334,7 @@ export class AuthService {
       name: guardian.name,
       phone: guardian.phone,
       email: guardian.email,
+      avatarUrl: guardian.avatarUrl,
       relation: guardian.relation,
       studentId: guardian.studentId,
       preferredLang: guardian.preferredLang,
@@ -465,6 +487,7 @@ export class AuthService {
         name: guardian.name,
         phone: guardian.phone,
         email: guardian.email,
+        avatarUrl: guardian.avatarUrl,
         relation: guardian.relation,
         studentId: guardian.studentId,
         preferredLang: guardian.preferredLang,

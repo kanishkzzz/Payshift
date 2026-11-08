@@ -32,6 +32,8 @@ import LandingExperience, {
   LandingActionButton,
 } from "@/components/landing/LandingExperience";
 import TrackyBrandIcon from "@/components/TrackyBrandIcon";
+import InstituteLandscapeBanner from "@/components/landing/InstituteLandscapeBanner";
+import MiniGlobe from "@/components/landing/MiniGlobe";
 
 const faqs = [
   {
@@ -449,7 +451,8 @@ export default function Home() {
                   </h3>
                   <p className="mt-3 text-[13px] leading-6 text-white/75">
                     Keep scheduled instalments, partial payments, oldest-first
-                    allocation, and remaining balances in the same record.
+                    allocation, and remaining balances in the
+                    same record.
                   </p>
                 </div>
                 <div
@@ -595,7 +598,7 @@ export default function Home() {
 
               <FeatureCard
                 id="product-refunds"
-                className="scroll-mt-24 md:col-span-6"
+                className="tracky-feature-refund-gradient scroll-mt-24 md:col-span-6"
                 eyebrow="Handle exits transparently"
                 title="Refund rules that can be reviewed."
                 description="Preview the cooling-off period, registration-fee treatment, pro-rata basis, and configured settlement date before tracking a case."
@@ -608,6 +611,7 @@ export default function Home() {
                   Open the refund calculator{" "}
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </LandingActionButton>
+                <MiniGlobe className="tracky-refund-mini-globe" size={104} />
               </FeatureCard>
 
               <FeatureCard
@@ -636,7 +640,7 @@ export default function Home() {
 
               <FeatureCard
                 id="product-tally"
-                className="scroll-mt-24 md:col-span-12"
+                className="tracky-feature-tally-gradient scroll-mt-24 md:col-span-12"
                 eyebrow="For accounting workflows"
                 title="A receipt export, ready to take further."
                 description="Generate a CSV receipt export for a chosen date range. Tracky does not currently provide a live two-way Tally connection."
@@ -656,24 +660,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="px-5 py-12 sm:px-8 sm:py-16">
-          <div className="mx-auto max-w-[1200px] rounded-2xl border border-slate-200 bg-white px-5 py-6 sm:px-8">
-            <p className="text-center text-[10px] font-semibold uppercase tracking-[.17em] text-slate-400">
-              Built around the real handoffs in fee operations
-            </p>
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5 text-[11px] font-medium text-slate-500 sm:gap-3">
-              <span className="tracky-work-chip">Fee schedules</span>
-              <ArrowRight className="h-3 w-3 text-slate-300" />
-              <span className="tracky-work-chip">Payments</span>
-              <ArrowRight className="h-3 w-3 text-slate-300" />
-              <span className="tracky-work-chip">Allocations</span>
-              <ArrowRight className="h-3 w-3 text-slate-300" />
-              <span className="tracky-work-chip">Receipts</span>
-              <ArrowRight className="h-3 w-3 text-slate-300" />
-              <span className="tracky-work-chip">Follow-up</span>
-            </div>
-          </div>
-        </section>
+        <InstituteLandscapeBanner />
 
         <section
           id="workflow"
@@ -952,11 +939,75 @@ export default function Home() {
                 Fee operations for coaching institutes, from scheduled
                 instalments to payment records and follow-up.
               </p>
-              <div className="mt-4 flex items-center gap-2" aria-label="Social and contact links">
-                <a href="https://www.linkedin.com/in/kanishk-negi-264018302/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#0a66c2]/20 bg-[#eaf4ff] text-[#0a66c2] transition hover:bg-[#dbeeff]"><svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14ZM8.3 10H5.7v8h2.6v-8ZM7 6.2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm11.3 7.2c0-2.4-1.3-3.6-3.1-3.6a2.7 2.7 0 0 0-2.4 1.3V10h-2.6v8h2.6v-4.1c0-1.1.2-2.2 1.6-2.2s1.4 1.3 1.4 2.3V18h2.5v-4.6Z" /></svg></a>
-                <a href="https://www.instagram.com/kanishknegi_1/" target="_blank" rel="noopener noreferrer" aria-label="Instagram profile" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e1306c]/20 bg-[#fff0f5] text-[#d62976] transition hover:bg-[#ffe3ee]"><svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg></a>
-                <a href="mailto:kanishk8negi@gmail.com" aria-label="Email Kanishk" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-teal-600/20 bg-teal-50 text-teal-700 transition hover:bg-teal-100"><Mail className="h-4 w-4" /></a>
-                <a href="https://github.com/kanishkzzz" target="_blank" rel="noopener noreferrer" aria-label="GitHub profile" className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800/15 bg-slate-100 text-slate-900 transition hover:bg-slate-200"><svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4" fill="currentColor"><path d="M12 .9a11.1 11.1 0 0 0-3.5 21.6c.55.1.75-.24.75-.53v-2c-3.07.67-3.72-1.3-3.72-1.3-.5-1.28-1.23-1.62-1.23-1.62-1-.69.08-.68.08-.68 1.1.08 1.68 1.14 1.68 1.14.99 1.68 2.59 1.2 3.22.92.1-.72.39-1.2.7-1.48-2.45-.28-5.03-1.23-5.03-5.47 0-1.21.43-2.2 1.14-2.97-.11-.28-.5-1.41.11-2.94 0 0 .93-.3 3.05 1.13a10.6 10.6 0 0 1 5.55 0c2.12-1.43 3.05-1.13 3.05-1.13.61 1.53.22 2.66.11 2.94.71.77 1.14 1.76 1.14 2.97 0 4.25-2.58 5.19-5.04 5.46.4.35.75 1.01.75 2.04v3.01c0 .29.2.63.76.53A11.1 11.1 0 0 0 12 .9Z" /></svg></a>
+              <div
+                className="mt-4 flex items-center gap-2"
+                aria-label="Social and contact links"
+              >
+                <a
+                  href="https://www.linkedin.com/in/kanishk-negi-264018302/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="LinkedIn profile"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#0a66c2]/20 bg-[#eaf4ff] text-[#0a66c2] transition hover:bg-[#dbeeff]"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    className="h-4 w-4"
+                    fill="currentColor"
+                  >
+                    <path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14ZM8.3 10H5.7v8h2.6v-8ZM7 6.2a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm11.3 7.2c0-2.4-1.3-3.6-3.1-3.6a2.7 2.7 0 0 0-2.4 1.3V10h-2.6v8h2.6v-4.1c0-1.1.2-2.2 1.6-2.2s1.4 1.3 1.4 2.3V18h2.5v-4.6Z" />
+                  </svg>
+                </a>
+                <a
+                  href="https://www.instagram.com/kanishknegi_1/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram profile"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-[#e1306c]/20 bg-[#fff0f5] text-[#d62976] transition hover:bg-[#ffe3ee]"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <rect x="3" y="3" width="18" height="18" rx="5" />
+                    <circle cx="12" cy="12" r="4" />
+                    <circle
+                      cx="17.5"
+                      cy="6.5"
+                      r="1"
+                      fill="currentColor"
+                      stroke="none"
+                    />
+                  </svg>
+                </a>
+                <a
+                  href="mailto:kanishk8negi@gmail.com"
+                  aria-label="Email Kanishk"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-teal-600/20 bg-teal-50 text-teal-700 transition hover:bg-teal-100"
+                >
+                  <Mail className="h-4 w-4" />
+                </a>
+                <a
+                  href="https://github.com/kanishkzzz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="GitHub profile"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-800/15 bg-slate-100 text-slate-900 transition hover:bg-slate-200"
+                >
+                  <svg
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                    className="h-4 w-4"
+                    fill="currentColor"
+                  >
+                    <path d="M12 .9a11.1 11.1 0 0 0-3.5 21.6c.55.1.75-.24.75-.53v-2c-3.07.67-3.72-1.3-3.72-1.3-.5-1.28-1.23-1.62-1.23-1.62-1-.69.08-.68.08-.68 1.1.08 1.68 1.14 1.68 1.14.99 1.68 2.59 1.2 3.22.92.1-.72.39-1.2.7-1.48-2.45-.28-5.03-1.23-5.03-5.47 0-1.21.43-2.2 1.14-2.97-.11-.28-.5-1.41.11-2.94 0 0 .93-.3 3.05 1.13a10.6 10.6 0 0 1 5.55 0c2.12-1.43 3.05-1.13 3.05-1.13.61 1.53.22 2.66.11 2.94.71.77 1.14 1.76 1.14 2.97 0 4.25-2.58 5.19-5.04 5.46.4.35.75 1.01.75 2.04v3.01c0 .29.2.63.76.53A11.1 11.1 0 0 0 12 .9Z" />
+                  </svg>
+                </a>
               </div>
             </div>
             <div> </div>

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { X, Clock, PieChart, ShieldAlert } from "lucide-react";
 import { useAccessibleDialog } from "@/components/landing/useAccessibleDialog";
+import { normalizeWholeNumberInput, wholeNumberValue } from "@/lib/numeric-input";
 
 interface AgingDuesCheckerModalProps {
   isOpen: boolean;
@@ -16,12 +17,15 @@ export default function AgingDuesCheckerModal({
   lang = "en",
 }: AgingDuesCheckerModalProps) {
   const dialogRef = useAccessibleDialog<HTMLDivElement>(isOpen, onClose);
-  const [b1, setB1] = useState<number>(145000); // 0-30 days
-  const [b2, setB2] = useState<number>(82000);  // 31-60 days
-  const [b3, setB3] = useState<number>(53000);  // 60+ days
+  const [b1Input, setB1Input] = useState("145000"); // 0-30 days
+  const [b2Input, setB2Input] = useState("82000"); // 31-60 days
+  const [b3Input, setB3Input] = useState("53000"); // 60+ days
 
   if (!isOpen) return null;
 
+  const b1 = wholeNumberValue(b1Input);
+  const b2 = wholeNumberValue(b2Input);
+  const b3 = wholeNumberValue(b3Input);
   const total = b1 + b2 + b3;
   const p1 = total > 0 ? Math.round((b1 / total) * 100) : 0;
   const p2 = total > 0 ? Math.round((b2 / total) * 100) : 0;
@@ -71,11 +75,10 @@ export default function AgingDuesCheckerModal({
             <input
               id="aging-bucket-0-30"
               aria-label="Amount in the 0 to 30 day bucket, rupees"
-              min={0}
-              step={1}
-              type="number"
-              value={b1}
-              onChange={(e) => setB1(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              inputMode="numeric"
+              type="text"
+              value={b1Input}
+              onChange={(e) => setB1Input(normalizeWholeNumberInput(e.target.value))}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-950 transition-colors focus:border-[#5470ff] focus:outline-none"
             />
           </div>
@@ -87,11 +90,10 @@ export default function AgingDuesCheckerModal({
             <input
               id="aging-bucket-31-60"
               aria-label="Amount in the 31 to 60 day bucket, rupees"
-              min={0}
-              step={1}
-              type="number"
-              value={b2}
-              onChange={(e) => setB2(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              inputMode="numeric"
+              type="text"
+              value={b2Input}
+              onChange={(e) => setB2Input(normalizeWholeNumberInput(e.target.value))}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-950 transition-colors focus:border-[#5470ff] focus:outline-none"
             />
           </div>
@@ -103,11 +105,10 @@ export default function AgingDuesCheckerModal({
             <input
               id="aging-bucket-60-plus"
               aria-label="Amount in the 60 plus day bucket, rupees"
-              min={0}
-              step={1}
-              type="number"
-              value={b3}
-              onChange={(e) => setB3(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+              inputMode="numeric"
+              type="text"
+              value={b3Input}
+              onChange={(e) => setB3Input(normalizeWholeNumberInput(e.target.value))}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-slate-950 transition-colors focus:border-[#5470ff] focus:outline-none"
             />
           </div>

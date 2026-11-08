@@ -205,6 +205,7 @@ model Guardian {
   name          String
   phone         String
   email         String?
+  avatarUrl     String?       @map("avatar_url")
   relation      String        @default("GUARDIAN")
   preferredLang PreferredLang @default(EN) @map("preferred_lang")
   createdAt     DateTime      @default(now()) @map("created_at")

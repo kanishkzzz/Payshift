@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -32,6 +32,13 @@ interface NavbarProps {
   onOpenRefundTool: () => void;
   onOpenAgingTool: () => void;
   onOpenLiveDemo: () => void;
+}
+
+interface NavbarUser {
+  id: string;
+  name: string;
+  role?: "ADMIN" | "ACCOUNTS" | "COUNSELLOR";
+  subjectType: "PARENT" | "STAFF";
 }
 
 const productItems = [
@@ -96,9 +103,42 @@ function LinkGrid({ items, onNavigate }: { items: typeof productItems; onNavigat
 
 export default function Navbar({ onOpenRefundTool, onOpenAgingTool, onOpenLiveDemo }: NavbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [activeMenu, setActiveMenu] = useState<MenuName | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState<NavbarUser | null>(null);
+  const [signingOut, setSigningOut] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    let active = true;
+    const refreshSession = async () => {
+      try {
+        const response = await fetch("/api/auth/me", { cache: "no-store" });
+        if (!response.ok) {
+          if (active) setUser(null);
+          return;
+        }
+        const payload = await response.json();
+        if (active) setUser((payload.user as NavbarUser | null) ?? null);
+      } catch {
+        if (active) setUser(null);
+      }
+    };
+    const refreshOnPageShow = () => { void refreshSession(); };
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshSession();
+    };
+
+    void refreshSession();
+    window.addEventListener("pageshow", refreshOnPageShow);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      active = false;
+      window.removeEventListener("pageshow", refreshOnPageShow);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [pathname]);
 
   const closeMenus = () => {
     setActiveMenu(null);
@@ -106,6 +146,26 @@ export default function Navbar({ onOpenRefundTool, onOpenAgingTool, onOpenLiveDe
   };
   const toggleMenu = (name: MenuName) => setActiveMenu((current) => (current === name ? null : name));
   const landingAnchor = (href: string) => pathname === "/" ? href : `/${href}`;
+  const workspaceHref = user?.subjectType === "PARENT"
+    ? "/parent/dues"
+    : user?.role === "COUNSELLOR"
+      ? "/counsellor"
+      : "/dashboard";
+
+  const signOut = async () => {
+    setSigningOut(true);
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error("Could not sign out.");
+      setUser(null);
+      closeMenus();
+      router.refresh();
+    } catch {
+      // Keep the signed-in state visible if the server could not revoke the session.
+    } finally {
+      setSigningOut(false);
+    }
+  };
 
   useEffect(() => {
     if (!activeMenu && !mobileOpen) return;
@@ -183,14 +243,22 @@ export default function Navbar({ onOpenRefundTool, onOpenAgingTool, onOpenLiveDe
 
         <div className="hidden items-center gap-2 lg:flex">
           <div className="relative">
-            <MenuButton name="login" label="Log in" active={activeMenu} onClick={toggleMenu} />
-            {activeMenu === "login" && <div id="nav-menu-login" className="tracky-mega-menu right-0 w-[230px]"><Link href="/login?tab=parent" onClick={closeMenus} className="tracky-login-choice"><Smartphone className="h-4 w-4 text-[#5470ff]" /><span><strong>Parent login</strong><small>Phone OTP</small></span></Link><Link href="/login?tab=staff" onClick={closeMenus} className="tracky-login-choice"><UsersRound className="h-4 w-4 text-[#8f45f2]" /><span><strong>Staff login</strong><small>Email and password</small></span></Link></div>}
+            <MenuButton name="login" label={user?.name.split(" ")[0] ?? "Log in"} active={activeMenu} onClick={toggleMenu} />
+            {activeMenu === "login" && (user ? (
+              <div id="nav-menu-login" className="tracky-mega-menu right-0 w-[240px]">
+                <p className="px-3 pb-2 text-xs text-slate-500">Signed in as <strong className="text-slate-800">{user.name}</strong></p>
+                <Link href={workspaceHref} onClick={closeMenus} className="tracky-login-choice"><UserRound className="h-4 w-4 text-[#5470ff]" /><span><strong>Open your workspace</strong><small>{user.subjectType === "PARENT" ? "Parent fee portal" : `${user.role ?? "Staff"} dashboard`}</small></span></Link>
+                <button type="button" onClick={() => void signOut()} disabled={signingOut} className="tracky-resource-link w-full text-left disabled:opacity-60">{signingOut ? "Signing out…" : "Sign out"}</button>
+              </div>
+            ) : (
+              <div id="nav-menu-login" className="tracky-mega-menu right-0 w-[230px]"><Link href="/login?tab=parent" onClick={closeMenus} className="tracky-login-choice"><Smartphone className="h-4 w-4 text-[#5470ff]" /><span><strong>Parent login</strong><small>Phone OTP</small></span></Link><Link href="/login?tab=staff" onClick={closeMenus} className="tracky-login-choice"><UsersRound className="h-4 w-4 text-[#8f45f2]" /><span><strong>Staff login</strong><small>Email and password</small></span></Link></div>
+            ))}
           </div>
-          <button onClick={onOpenLiveDemo} className="tracky-nav-cta">Try live demo <ArrowRight className="h-3.5 w-3.5" /></button>
+          {!user && <button onClick={onOpenLiveDemo} className="tracky-nav-cta">Try live demo <ArrowRight className="h-3.5 w-3.5" /></button>}
         </div>
 
         <div className="flex items-center gap-2 lg:hidden">
-          <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-700">Log in</Link>
+          {user ? <Link href={workspaceHref} className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-700">Profile</Link> : <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-700">Log in</Link>}
           <button type="button" aria-label={mobileOpen ? "Close menu" : "Open menu"} aria-expanded={mobileOpen} onClick={() => setMobileOpen((open) => !open)} className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 text-slate-800">
             {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
@@ -199,6 +267,7 @@ export default function Navbar({ onOpenRefundTool, onOpenAgingTool, onOpenLiveDe
 
       {mobileOpen && (
         <div className="absolute inset-x-0 top-[68px] max-h-[calc(100dvh-68px)] overflow-y-auto border-b border-slate-200 bg-white px-5 pb-6 pt-2 shadow-xl lg:hidden">
+          {user && <div className="mb-2 rounded-xl bg-slate-50 p-3"><p className="text-sm font-semibold text-slate-900">{user.name}</p><p className="mt-0.5 text-xs text-slate-500">{user.subjectType === "PARENT" ? "Parent account" : `${user.role ?? "Staff"} account`}</p><button type="button" onClick={() => void signOut()} disabled={signingOut} className="mt-2 text-xs font-semibold text-slate-600 disabled:opacity-60">{signingOut ? "Signing out…" : "Sign out"}</button></div>}
           <details className="tracky-mobile-group"><summary>Product <ChevronDown className="h-4 w-4" /></summary><div className="grid grid-cols-1 gap-1 pb-2 sm:grid-cols-2">{productItems.map((item) => <Link key={item.title} onClick={closeMenus} href={landingAnchor(item.href)} className="rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">{item.title}</Link>)}</div></details>
           <details className="tracky-mobile-group"><summary>Who it’s for <ChevronDown className="h-4 w-4" /></summary><div className="grid grid-cols-1 gap-1 pb-2 sm:grid-cols-2">{audienceItems.map((item) => <Link key={item.title} onClick={closeMenus} href={landingAnchor(item.href)} className="rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">{item.title}</Link>)}</div></details>
           <details className="tracky-mobile-group"><summary>Tools <ChevronDown className="h-4 w-4" /></summary><div className="grid gap-2 pb-2 sm:grid-cols-2"><button onClick={() => { closeMenus(); onOpenRefundTool(); }} className="rounded-lg bg-slate-50 px-3 py-3 text-left text-sm font-medium">Refund calculator</button><button onClick={() => { closeMenus(); onOpenAgingTool(); }} className="rounded-lg bg-slate-50 px-3 py-3 text-left text-sm font-medium">Ageing dues checker</button></div></details>
