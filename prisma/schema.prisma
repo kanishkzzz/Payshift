@@ -59,6 +59,14 @@ enum RefundStatus {
   SETTLED
 }
 
+enum RefundReasonCode {
+  STUDENT_WITHDRAWAL
+  BATCH_CANCELLED
+  MEDICAL_GROUNDS
+  DOUBLE_PAYMENT
+  OTHER
+}
+
 enum RiskStatus {
   OPEN
   CONFIRMED
@@ -82,6 +90,49 @@ enum SubjectType {
   STAFF
   PARENT
 }
+
+enum RiskTier {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ExplanationSource {
+  TEMPLATE
+  LLM
+}
+
+model RiskFlag {
+  id                String            @id @default(cuid())
+  studentId         String            @map("student_id")
+  score             Int
+  tier              RiskTier          @default(LOW)
+  reasonsJson       Json              @map("reasons_json")
+  featuresJson      Json?             @map("features_json")
+  modelVersion      String            @default("legacy") @map("model_version")
+  asOfDate          DateTime?         @map("as_of_date")
+  explanation       String?
+  explanationSource ExplanationSource @default(TEMPLATE) @map("explanation_source")
+  status            RiskStatus        @default(OPEN)
+  reviewedBy        String?           @map("reviewed_by")
+  reviewedAt        DateTime?         @map("reviewed_at")
+  reviewReason      String?           @map("review_reason")
+  reviewNote        String?           @map("review_note")
+  createdAt         DateTime          @default(now()) @map("created_at")
+
+  student         Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reviewer        User?            @relation("RiskFlagReviewer", fields: [reviewedBy], references: [id], onDelete: SetNull)
+  counsellorTasks CounsellorTask[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([tier, status])
+  @@index([reviewedBy])
+  @@map("risk_flags")
+}
+
+// in model User, next to settledRefunds:
+//   reviewedRiskFlags RiskFlag[] @relation("RiskFlagReviewer")
 
 // ----------------------------------------------------
 // 1. Centres & Academic Batches
@@ -376,18 +427,19 @@ model RefundPolicy {
 }
 
 model RefundCase {
-  id            String       @id @default(cuid())
-  enrollmentId  String       @map("enrollment_id")
-  leaveDate     DateTime     @map("leave_date")
-  computedPaise BigInt       @map("computed_paise")
-  policyVersion String       @map("policy_version")
-  approvedById  String?      @map("approved_by_id")
-  settledById   String?      @map("settled_by_id")
-  status        RefundStatus @default(PENDING)
-  paidByDate    DateTime     @map("paid_by_date")
-  settledAt     DateTime?    @map("settled_at")
-  reason        String?
-  createdAt     DateTime     @default(now()) @map("created_at")
+  id            String           @id @default(cuid())
+  enrollmentId  String           @map("enrollment_id")
+  leaveDate     DateTime         @map("leave_date")
+  computedPaise BigInt           @map("computed_paise")
+  policyVersion String           @map("policy_version")
+  approvedById  String?          @map("approved_by_id")
+  settledById   String?          @map("settled_by_id")
+  status        RefundStatus     @default(PENDING)
+  paidByDate    DateTime         @map("paid_by_date")
+  settledAt     DateTime?        @map("settled_at")
+  reasonCode    RefundReasonCode @map("reason_code")
+  reasonDetail  String?          @map("reason_detail")
+  createdAt     DateTime         @default(now()) @map("created_at")
 
   enrollment   Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Restrict)
   refundPolicy RefundPolicy @relation(fields: [policyVersion], references: [version], onDelete: Restrict)
@@ -433,24 +485,6 @@ model TestScore {
 
   @@index([studentId, date])
   @@map("test_scores")
-}
-
-model RiskFlag {
-  id          String     @id @default(cuid())
-  studentId   String     @map("student_id")
-  score       Int
-  reasonsJson Json       @map("reasons_json")
-  status      RiskStatus @default(OPEN)
-  reviewedBy  String?    @map("reviewed_by")
-  reviewedAt  DateTime?  @map("reviewed_at")
-  createdAt   DateTime   @default(now()) @map("created_at")
-
-  student         Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  counsellorTasks CounsellorTask[]
-
-  @@index([studentId])
-  @@index([status])
-  @@map("risk_flags")
 }
 
 model CounsellorTask {
@@ -507,10 +541,11 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  centre          Centre?          @relation(fields: [centreId], references: [id], onDelete: SetNull)
-  assignedTasks   CounsellorTask[]
-  approvedRefunds RefundCase[]     @relation("RefundApprover")
-  settledRefunds  RefundCase[]     @relation("RefundSettler")
+  centre            Centre?          @relation(fields: [centreId], references: [id], onDelete: SetNull)
+  assignedTasks     CounsellorTask[]
+  approvedRefunds   RefundCase[]     @relation("RefundApprover")
+  settledRefunds    RefundCase[]     @relation("RefundSettler")
+  reviewedRiskFlags RiskFlag[]       @relation("RiskFlagReviewer")
 
   @@index([role])
   @@map("users")

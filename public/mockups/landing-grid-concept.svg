@@ -1,0 +1,48 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="177" y1="77" x2="1260" y2="887" gradientUnits="userSpaceOnUse"><stop stop-color="#0D182A"/><stop offset="1" stop-color="#07101D"/></linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="matrix(700 0 0 510 720 444)" gradientUnits="userSpaceOnUse"><stop stop-color="#1C3854" stop-opacity=".78"/><stop offset=".55" stop-color="#14283F" stop-opacity=".47"/><stop offset="1" stop-color="#0B1525" stop-opacity="0"/></radialGradient>
+    <radialGradient id="fade" cx="0" cy="0" r="1" gradientTransform="matrix(0 465 -720 0 720 450)" gradientUnits="userSpaceOnUse"><stop offset=".48" stop-color="#fff"/><stop offset="1" stop-color="#000"/></radialGradient>
+    <mask id="gridFade"><rect width="1440" height="900" fill="url(#fade)"/></mask>
+    <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" stroke="#A9C2D8" stroke-opacity=".19" stroke-width="1"/></pattern>
+    <linearGradient id="ball" x1="620" y1="340" x2="790" y2="500" gradientUnits="userSpaceOnUse"><stop stop-color="#FFDD75"/><stop offset=".52" stop-color="#FF9E55"/><stop offset="1" stop-color="#FA625B"/></linearGradient>
+    <radialGradient id="ballGlow"><stop stop-color="#83CDBA" stop-opacity=".12"/><stop offset=".38" stop-color="#5C9EAD" stop-opacity=".065"/><stop offset="1" stop-color="#5C9EAD" stop-opacity="0"/></radialGradient>
+    <filter id="shadow" x="480" y="273" width="378" height="353" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="30"/></filter>
+    <filter id="soft" x="0" y="0" width="1440" height="900" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="38"/></filter>
+    <filter id="ambientBlur" x="0" y="0" width="1440" height="900" color-interpolation-filters="sRGB" filterUnits="userSpaceOnUse"><feGaussianBlur stdDeviation="52"/></filter>
+  </defs>
+  <rect width="1440" height="900" rx="28" fill="url(#bg)"/>
+  <rect width="1440" height="900" rx="28" fill="url(#glow)"/>
+  <g mask="url(#gridFade)"><rect width="1440" height="900" fill="url(#grid)"/></g>
+  <ellipse cx="750" cy="440" rx="340" ry="200" fill="#4380A4" fill-opacity=".08" filter="url(#soft)"/>
+  <!-- A barely-there ambient mote: the live version can drift slowly behind the interface. -->
+  <ellipse cx="663" cy="421" rx="155" ry="112" fill="url(#ballGlow)" filter="url(#ambientBlur)" opacity=".62"/>
+  <ellipse cx="663" cy="421" rx="75" ry="48" fill="#83CDBA" fill-opacity=".035" filter="url(#ambientBlur)"/>
+  <g opacity=".85">
+    <rect x="1010" y="285" width="216" height="142" rx="14" fill="#111F30" fill-opacity=".75" stroke="#BDD2E5" stroke-opacity=".14"/>
+    <text x="1034" y="317" fill="#9BB0C5" font-family="Arial,sans-serif" font-size="11" letter-spacing="1.5">FEE COLLECTION</text>
+    <text x="1034" y="359" fill="#F2F6F9" font-family="Arial,sans-serif" font-size="25" font-weight="600">₹ 8.4L</text>
+    <path d="M1036 395C1060 388 1070 398 1091 384C1110 371 1123 382 1140 359C1154 341 1172 355 1198 336" stroke="#72C9B2" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="1198" cy="336" r="4" fill="#72C9B2"/>
+  </g>
+  <g opacity=".8">
+    <rect x="206" y="573" width="198" height="92" rx="14" fill="#111F30" fill-opacity=".72" stroke="#BDD2E5" stroke-opacity=".12"/>
+    <circle cx="233" cy="607" r="10" fill="#72C9B2" fill-opacity=".18"/><path d="m229 607 3 3 6-7" stroke="#72C9B2" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="253" y="605" fill="#E8EEF4" font-family="Arial,sans-serif" font-size="12" font-weight="600">Payment reconciled</text>
+    <text x="229" y="638" fill="#90A3B7" font-family="Arial,sans-serif" font-size="11">Receipt sent to parent · just now</text>
+  </g>
+  <text x="720" y="112" text-anchor="middle" fill="#75CDB7" font-family="Arial,sans-serif" font-size="12" font-weight="700" letter-spacing="2.3">FEE OPERATIONS, IN SYNC</text>
+  <text x="720" y="176" text-anchor="middle" fill="#F5F7FA" font-family="Arial,sans-serif" font-size="48" font-weight="600" letter-spacing="-1.8">Every fee, accounted for.</text>
+  <text x="720" y="212" text-anchor="middle" fill="#AAB9C9" font-family="Arial,sans-serif" font-size="16">A clearer way to collect, reconcile and keep families in the loop.</text>
+  <rect x="642" y="243" width="156" height="44" rx="22" fill="#F6B45C"/>
+  <text x="720" y="270" text-anchor="middle" fill="#1B2530" font-family="Arial,sans-serif" font-size="13" font-weight="700">Explore the demo ↗</text>
+  <rect x="44" y="32" width="1352" height="54" rx="13" fill="#0B1522" fill-opacity=".68" stroke="#C7D6E5" stroke-opacity=".11"/>
+  <circle cx="72" cy="59" r="12" fill="#F4B65F"/><path d="M67 60h10M72 55v10" stroke="#142133" stroke-width="2" stroke-linecap="round"/>
+  <text x="94" y="65" fill="#F2F5F8" font-family="Arial,sans-serif" font-size="18" font-weight="700" letter-spacing="-.4">Tracky</text>
+  <text x="420" y="64" fill="#C0CCD8" font-family="Arial,sans-serif" font-size="12">Product⌄</text><text x="510" y="64" fill="#C0CCD8" font-family="Arial,sans-serif" font-size="12">Who it’s for⌄</text><text x="623" y="64" fill="#C0CCD8" font-family="Arial,sans-serif" font-size="12">Tools⌄</text><text x="695" y="64" fill="#C0CCD8" font-family="Arial,sans-serif" font-size="12">For parents</text><text x="795" y="64" fill="#C0CCD8" font-family="Arial,sans-serif" font-size="12">Resources⌄</text>
+  <text x="1110" y="64" fill="#C0CCD8" font-family="Arial,sans-serif" font-size="12">Login⌄</text>
+  <rect x="1192" y="43" width="174" height="33" rx="17" fill="#F4B65F"/><text x="1279" y="64" text-anchor="middle" fill="#192432" font-family="Arial,sans-serif" font-size="12" font-weight="700">Try live demo</text>
+  <text x="720" y="847" text-anchor="middle" fill="#8193A7" font-family="Arial,sans-serif" font-size="11" letter-spacing="1.2">A DIRECTIONAL MOCKUP · MOTION WOULD BE ADDED IN THE LIVE PAGE</text>
+</svg>
+
+

@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { UserPlus, AlertCircle, Loader2, ShieldCheck, Info, KeyRound } from "lucide-react";
+import TrackyBrandIcon from "@/components/TrackyBrandIcon";
+import { AlertCircle, Loader2, ShieldCheck, Info, KeyRound } from "lucide-react";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function SignupPage() {
     email: "",
     studentId: "",
     relation: "FATHER",
+    preferredLang: "EN",
     otp: "",
   });
   const [otpSent, setOtpSent] = useState(false);
@@ -54,9 +56,9 @@ export default function SignupPage() {
 
       setOtpSent(true);
       if (data.devOtp) {
-        setInfo(`Test Mode: OTP sent! Your code is ${data.devOtp}`);
+        setInfo(`Development OTP: ${data.devOtp}. No SMS was sent.`);
       } else {
-        setInfo("A 6-digit OTP has been sent to your mobile number.");
+        setInfo("SMS delivery is not configured for this demo, so a code will not arrive by text.");
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to send OTP.");
@@ -104,12 +106,10 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
-      <div className="w-full max-w-lg bg-white rounded-xl shadow-md border border-slate-200 p-8">
+    <div className="tracky-workspace min-h-screen flex items-center justify-center px-4 py-12">
+      <div className="tracky-auth-card w-full max-w-lg bg-white/95 border border-white p-8 backdrop-blur-sm">
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 mb-3">
-            <UserPlus className="w-6 h-6" />
-          </div>
+          <TrackyBrandIcon className="mx-auto mb-3 h-12 w-12 rounded-[11px] shadow-[0_5px_14px_rgba(84,112,255,.22)]" />
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Parent Account Registration</h1>
           <p className="text-sm text-slate-500 mt-1">
             Passwordless Registration via Phone OTP
@@ -151,7 +151,7 @@ export default function SignupPage() {
               value={formData.name}
               onChange={handleChange}
               placeholder="e.g. Sunita Sharma"
-              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm transition"
+              className="w-full px-3.5 py-2.5 rounded-lg tracky-auth-input border text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7164e8] text-sm transition"
             />
           </div>
 
@@ -168,7 +168,7 @@ export default function SignupPage() {
                 value={formData.phone}
                 onChange={handleChange}
                 placeholder="+919876543210"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm transition"
+                className="w-full px-3.5 py-2.5 rounded-lg tracky-auth-input border text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7164e8] text-sm transition"
               />
             </div>
 
@@ -181,13 +181,22 @@ export default function SignupPage() {
                 name="relation"
                 value={formData.relation}
                 onChange={handleChange}
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm transition bg-white"
+                className="w-full px-3.5 py-2.5 rounded-lg tracky-auth-input border text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#7164e8] text-sm transition bg-white"
               >
                 <option value="MOTHER">Mother</option>
                 <option value="FATHER">Father</option>
                 <option value="GUARDIAN">Guardian</option>
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1" htmlFor="preferredLang">Fee reminder language</label>
+            <select id="preferredLang" name="preferredLang" value={formData.preferredLang} onChange={handleChange} className="w-full px-3.5 py-2.5 rounded-lg tracky-auth-input border text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#7164e8] text-sm transition bg-white">
+              <option value="EN">English messages</option>
+              <option value="HI">Hindi messages</option>
+            </select>
+            <p className="mt-1 text-xs leading-5 text-slate-500">This controls fee reminders sent by your institute, not the language of this website.</p>
           </div>
 
           <div>
@@ -201,7 +210,7 @@ export default function SignupPage() {
               value={formData.studentId}
               onChange={handleChange}
               placeholder="STU-0587"
-              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm transition"
+              className="w-full px-3.5 py-2.5 rounded-lg tracky-auth-input border text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7164e8] text-sm transition"
             />
           </div>
 
@@ -216,7 +225,7 @@ export default function SignupPage() {
               value={formData.email}
               onChange={handleChange}
               placeholder="sunita.sharma@example.com"
-              className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm transition"
+              className="w-full px-3.5 py-2.5 rounded-lg tracky-auth-input border text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7164e8] text-sm transition"
             />
           </div>
 
@@ -234,7 +243,7 @@ export default function SignupPage() {
                 value={formData.otp}
                 onChange={handleChange}
                 placeholder="123456"
-                className="w-full px-3.5 py-2.5 rounded-lg border border-slate-300 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-sm tracking-widest text-center font-mono font-semibold transition"
+                className="w-full px-3.5 py-2.5 rounded-lg tracky-auth-input border text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#7164e8] text-sm tracking-widest text-center font-mono font-semibold transition"
               />
             </div>
           )}
@@ -242,7 +251,7 @@ export default function SignupPage() {
           <button
             type="submit"
             disabled={loading || sendingOtp}
-            className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm transition shadow-sm disabled:opacity-50"
+            className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg tracky-auth-submit text-white font-medium text-sm transition shadow-sm disabled:opacity-50"
           >
             {sendingOtp || loading ? (
               <>
@@ -268,7 +277,7 @@ export default function SignupPage() {
             Already registered?{" "}
             <Link
               href="/login"
-              className="font-medium text-emerald-600 hover:text-emerald-700 underline underline-offset-4"
+              className="font-medium text-[#6558d9] hover:text-[#5145c4] underline underline-offset-4"
             >
               Sign In via OTP
             </Link>
@@ -278,3 +287,4 @@ export default function SignupPage() {
     </div>
   );
 }
+

@@ -1097,6 +1097,8 @@ async function main() {
           id: flagId,
           studentId: studentId,
           score: 65,
+          tier: "MEDIUM",
+          modelVersion: "seed-legacy",
           reasonsJson: ["Instalment 2 overdue > 45 days", "Reminder T+14 unacknowledged"],
           status: "OPEN",
         });
@@ -1112,6 +1114,50 @@ async function main() {
         });
       } else {
         // --- SEVERELY OVERDUE (60+ days: Neither instalment paid, Inst 1 due Aug 1 -> 93 days overdue) ---
+        if (studentNum === 60) {
+          // STU-0060 paid Instalment 1 (₹12,000) prior to withdrawal so approved refund (₹8,000) is validly backed by payments
+          const pay1Id = `pay_${studentId.toLowerCase()}_1`;
+          const order1Id = `ord_${studentId.toLowerCase()}_1`;
+          paymentOrdersToInsert.push({
+            id: order1Id,
+            instalmentId: inst1Id,
+            guardianId: guardianId,
+            amountPaise: instAmountPaise,
+            gatewayOrderId: `gw_ord_${++orderCounter}`,
+            status: "PAID",
+            createdAt: new Date("2026-07-20T10:00:00.000Z"),
+          });
+
+          paymentsToInsert.push({
+            id: pay1Id,
+            studentId: studentId,
+            amountPaise: instAmountPaise,
+            source: "BANK_TRANSFER",
+            gatewayRef: `gw_ref_${++paymentCounter}`,
+            receivedAt: new Date("2026-07-20T10:05:00.000Z"),
+            status: "MATCHED",
+            notes: "Instalment 1 bank transfer",
+          });
+
+          allocationsToInsert.push({
+            id: `alloc_${studentId.toLowerCase()}_1`,
+            paymentId: pay1Id,
+            instalmentId: inst1Id,
+            amountPaise: instAmountPaise,
+          });
+
+          const taxable1 = BigInt(Math.round(Number(instAmountPaise) / 1.18));
+          receiptsToInsert.push({
+            id: `rcp_${studentId.toLowerCase()}_1`,
+            paymentId: pay1Id,
+            receiptNo: nextReceiptNo(cfg.centreCode),
+            gstin: cfg.centre.gstin!,
+            taxablePaise: taxable1,
+            gstPaise: instAmountPaise - taxable1,
+            issuedAt: new Date("2026-07-20T10:05:05.000Z"),
+          });
+        }
+
         remindersToInsert.push(
           {
             id: `rem_${studentId.toLowerCase()}_t_zero`,
@@ -1151,6 +1197,8 @@ async function main() {
           id: flagId,
           studentId: studentId,
           score: 88,
+          tier: "HIGH",
+          modelVersion: "seed-legacy",
           reasonsJson: ["Zero payments received", "Instalment 1 overdue > 90 days", "Low attendance"],
           status: "OPEN",
         });
@@ -1259,7 +1307,8 @@ async function main() {
       settledById: null,
       status: "APPROVED",
       paidByDate: new Date("2026-10-15T00:00:00.000Z"),
-      reason: "Relocating out of city",
+      reasonCode: "STUDENT_WITHDRAWAL",
+      reasonDetail: "Relocating out of city",
     },
   });
 
@@ -1299,12 +1348,5 @@ main()
     await prisma.$disconnect();
   });
 
-await prisma.refundPolicy.upsert({
-  where: { version: "v2026.1" },
-  update: {},
-  create: {
-    version: "v2026.1",
-    effectiveFrom: new Date("2026-04-01T00:00:00+05:30"),
-    rulesJson: { coolingOffDays: 7, registrationRefundable: false, settlementDays: 10 },
-  },
-});
+
+

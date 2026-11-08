@@ -29,6 +29,7 @@ export async function POST(
       orderId: result.orderId,
       gatewayOrderId: result.gatewayOrderId,
       checkoutUrl: result.checkoutUrl,
+      checkout: result.checkout,
       amountPaise: result.amountPaise,
     });
   } catch (err: unknown) {

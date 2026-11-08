@@ -1,3 +1,5 @@
+import type { RefundReasonCode, RefundStatus } from "@prisma/client";
+
 export interface RefundRules {
     coolingOffDays: number;          // leave within N days of enrolling -> full refundable base
     registrationRefundable: boolean; // default false
@@ -39,3 +41,36 @@ export interface RefundResult {
 
 export type RefundTransitionAction = "approve" | "reject" | "settle";
 export type RefundSlaStatus = "ON_TRACK" | "AT_RISK" | "BREACHED" | "CLOSED";
+
+export const REFUND_REASON_LABELS: Record<RefundReasonCode, string> = {
+    STUDENT_WITHDRAWAL: "Student withdrawal",
+    BATCH_CANCELLED: "Batch cancelled",
+    MEDICAL_GROUNDS: "Medical grounds",
+    DOUBLE_PAYMENT: "Double payment",
+    OTHER: "Other",
+};
+
+export interface CreateRefundCaseInput {
+    enrollmentId: string;
+    leaveDate?: string;
+    reasonCode: RefundReasonCode;
+    reasonDetail?: string | null;
+    actorId: string;
+}
+
+export interface RefundCaseListItem {
+    id: string;
+    student: { id: string; name: string };
+    enrollmentId: string;
+    leaveDate: string;
+    computedPaise: string;
+    policyVersion: string;
+    reasonCode: RefundReasonCode;
+    reasonDetail: string | null;
+    reasonLabel: string;
+    status: RefundStatus;
+    paidByDate: string;
+    paidPaise: string;
+    daysLeft: number | null;
+    slaStatus: RefundSlaStatus;
+}
