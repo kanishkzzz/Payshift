@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tracky | Fee Ledger & Dues Management",
-  description: "High-reliability fee ledger, parent portal, and automated dues management.",
+  title: "Tracky | Fee operations for coaching institutes",
+  description: "Connect fee schedules, payment allocation, parent reminders, refund cases, dues reports, and receipt exports in one Tracky demo.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

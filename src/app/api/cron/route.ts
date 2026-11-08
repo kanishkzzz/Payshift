@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { ReminderService } from "@/modules/reminders/services/reminder-service";
-
+import { RiskService } from "@/modules/risk/risk-service";
 
 
 function safeEqual(a: string, b: string): boolean {
@@ -42,13 +42,33 @@ async function handle(req: Request) {
         runDate = dateParam;
     }
 
+    // try {
+    //     const summary = await ReminderService.runDailyReminders(runDate);
+    //     return NextResponse.json(summary);
+    // } catch (err) {
+    //     console.error("[Cron] Reminder run failed:", err instanceof Error ? err.message : err);
+    //     return NextResponse.json({ error: "INTERNAL_ERROR" }, { status: 500 });
+    // }
+
+    let reminders: Awaited<ReturnType<typeof ReminderService.runDailyReminders>> | null = null;
     try {
-        const summary = await ReminderService.runDailyReminders(runDate);
-        return NextResponse.json(summary);
+        reminders = await ReminderService.runDailyReminders(runDate);
     } catch (err) {
         console.error("[Cron] Reminder run failed:", err instanceof Error ? err.message : err);
-        return NextResponse.json({ error: "INTERNAL_ERROR" }, { status: 500 });
     }
+
+    let risk: unknown;
+    try {
+        risk = await RiskService.runDailyEvaluation(runDate);
+    } catch (err) {
+        console.error("[Cron] Risk run failed:", err instanceof Error ? err.message : err);
+        risk = { error: "RISK_RUN_FAILED" };
+    }
+
+    if (!reminders) {
+        return NextResponse.json({ error: "INTERNAL_ERROR", risk }, { status: 500 });
+    }
+    return NextResponse.json({ ...reminders, risk });
 }
 
 export const GET = handle;

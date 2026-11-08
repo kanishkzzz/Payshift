@@ -405,6 +405,46 @@ function legacyCheckoutUrl(checkout: CheckoutPayload): string | undefined {
 }
 
 export class PaymentService {
+  static async getMockCheckoutDetails(guardianId: string, orderId: string) {
+    if (process.env.NODE_ENV === "production" || getPaymentGateway().provider !== "mock") {
+      throw new PaymentError("Mock checkout is only available in development.", 404, "NOT_FOUND");
+    }
+    const order = await prisma.paymentOrder.findUnique({ where: { id: orderId } });
+    if (!order || order.guardianId !== guardianId || !order.gatewayOrderId.startsWith("order_mock_")) {
+      throw new PaymentError("Payment order not found.", 404, "NOT_FOUND");
+    }
+    return { amountPaise: order.amountPaise.toString(), status: order.status };
+  }
+
+  /** Development-only confirmation for the authenticated mock checkout screen. */
+  static async completeMockCheckout(guardianId: string, orderId: string) {
+    if (process.env.NODE_ENV === "production" || getPaymentGateway().provider !== "mock") {
+      throw new PaymentError("Mock checkout is only available in development.", 404, "NOT_FOUND");
+    }
+    const order = await prisma.paymentOrder.findUnique({ where: { id: orderId } });
+    if (!order || order.guardianId !== guardianId || !order.gatewayOrderId.startsWith("order_mock_")) {
+      throw new PaymentError("Payment order not found.", 404, "NOT_FOUND");
+    }
+    if (order.status !== "CREATED") {
+      const payment = await prisma.payment.findFirst({
+        where: { gatewayRef: { startsWith: `pay_mock_${order.id}` } },
+        include: { receipt: { select: { receiptNo: true } } },
+      });
+      return { status: payment?.status === "MATCHED" ? "PAID" : order.status === "FAILED" ? "FAILED" : "CONFIRMING", receiptNo: payment?.receipt?.receiptNo };
+    }
+    const result = await settleGatewayEvent({
+      eventId: `mock-checkout:${order.id}`,
+      type: "payment.captured",
+      gatewayOrderId: order.gatewayOrderId,
+      gatewayPaymentId: `pay_mock_${order.id}`,
+      amountPaise: order.amountPaise,
+      status: "PAID",
+      occurredAt: new Date(),
+      method: "mock",
+    }, "MOCK_CHECKOUT");
+    return { status: result.unmatched ? "UNDER_REVIEW" : "PAID", receiptNo: result.receiptNo };
+  }
+
   /**
    * Flow 1: Parent taps "Pay".
    * - guardianId comes from requireParent(), never from the client.
