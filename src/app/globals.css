@@ -278,13 +278,7 @@ body { background-color: var(--background); color: var(--foreground); font-famil
 .tracky-story-card p { font-size: 14px; line-height: 1.6; }
 
 .tracky-feature-card { position: relative; min-height: 225px; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; padding: 22px; transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease; }
-.tracky-feature-tally-gradient, .tracky-feature-refund-gradient { isolation: isolate; }
-.tracky-feature-refund-gradient::before, .tracky-feature-refund-gradient::after { position: absolute; z-index: 0; right: -3%; bottom: -38%; width: min(38%, 430px); height: 120%; content: ""; background: linear-gradient(132deg, rgba(217,70,239,.12), rgba(168,32,241,.3) 48%, rgba(91,33,182,.55)); filter: blur(38px); pointer-events: none; }
-.tracky-feature-refund-gradient::after { right: 0; bottom: 0; width: min(34%, 380px); height: 83%; background: linear-gradient(132deg, rgba(232,121,249,.12) 0%, #d946ef 35%, #a100e8 68%, #6020c7 100%); clip-path: polygon(52% 100%, 100% 100%, 100% 0, 77% 0); filter: blur(10px); opacity: .9; }
-.tracky-feature-tally-gradient::before { position: absolute; z-index: 0; inset: -20% -4% -24% 42%; content: ""; background: radial-gradient(ellipse at 76% 47%, rgba(210, 67, 244, .28), transparent 34%), radial-gradient(ellipse at 94% 76%, rgba(134, 66, 232, .25), transparent 36%), radial-gradient(ellipse at 62% 28%, rgba(238, 156, 255, .2), transparent 38%), linear-gradient(118deg, transparent 25%, rgba(208, 119, 245, .08) 58%, rgba(139, 72, 228, .13)); filter: blur(24px); pointer-events: none; }
-.tracky-feature-tally-gradient::after { position: absolute; z-index: 0; top: 17%; right: -2%; bottom: -22%; width: min(34%, 390px); content: ""; background: linear-gradient(118deg, rgba(235, 177, 255, 0) 8%, rgba(219, 73, 245, .23) 42%, rgba(163, 39, 225, .35) 72%, rgba(103, 50, 197, .2)); clip-path: polygon(53% 100%, 100% 100%, 100% 0, 84% 0); filter: blur(32px); opacity: .88; pointer-events: none; }
-.tracky-feature-tally-gradient > *, .tracky-feature-refund-gradient > * { position: relative; z-index: 1; }
-.tracky-mini-globe { display: inline-flex; width: 112px; height: 112px; align-items: center; justify-content: center; pointer-events: none; }
+.tracky-mini-globe { display: inline-flex; width: 128px; height: 128px; align-items: center; justify-content: center; pointer-events: none; }
 .tracky-mini-globe canvas { display: block; max-width: 100%; max-height: 100%; }
 .tracky-refund-mini-globe { position: absolute; right: 12px; bottom: 10px; opacity: .92; }
 .tracky-feature-card > p:first-of-type { font-size: 11px; }

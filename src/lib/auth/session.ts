@@ -2,7 +2,7 @@ import crypto from "crypto";
 import { cookies } from "next/headers";
 
 export const SESSION_COOKIE_NAME = "tracky_session";
-export const DEFAULT_SESSION_DURATION_DAYS = 7;
+export const DEFAULT_SESSION_DURATION_DAYS = 1;
 
 /**
  * Checks whether an error is a known Next.js context restriction

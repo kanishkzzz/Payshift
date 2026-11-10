@@ -16,6 +16,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
+    "db:create-staff": "tsx prisma/create-staff.ts",
     "db:studio": "prisma studio"
   },
   "prisma": {

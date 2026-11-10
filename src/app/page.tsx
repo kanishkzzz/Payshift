@@ -598,7 +598,7 @@ export default function Home() {
 
               <FeatureCard
                 id="product-refunds"
-                className="tracky-feature-refund-gradient scroll-mt-24 md:col-span-6"
+                className="tracky-feature-refund scroll-mt-24 md:col-span-6"
                 eyebrow="Handle exits transparently"
                 title="Refund rules that can be reviewed."
                 description="Preview the cooling-off period, registration-fee treatment, pro-rata basis, and configured settlement date before tracking a case."
@@ -611,7 +611,7 @@ export default function Home() {
                   Open the refund calculator{" "}
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </LandingActionButton>
-                <MiniGlobe className="tracky-refund-mini-globe" size={104} />
+                <MiniGlobe className="tracky-refund-mini-globe" size={120} />
               </FeatureCard>
 
               <FeatureCard
@@ -640,7 +640,7 @@ export default function Home() {
 
               <FeatureCard
                 id="product-tally"
-                className="tracky-feature-tally-gradient scroll-mt-24 md:col-span-12"
+                className="tracky-feature-tally scroll-mt-24 md:col-span-12"
                 eyebrow="For accounting workflows"
                 title="A receipt export, ready to take further."
                 description="Generate a CSV receipt export for a chosen date range. Tracky does not currently provide a live two-way Tally connection."

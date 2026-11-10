@@ -50,16 +50,32 @@ The public site and repository URLs were reachable when this package was prepare
 
 ## Reviewer accounts
 
-Sign in at `/login`. The sample records are synthetic and must only be used with a demo database.
+Sign in at `/login` on the public production URL. These are shared reviewer accounts backed by synthetic records; use them only with the isolated demo database. Do not publish a personal staff password as a reviewer credential.
 
 | Experience | Login ID | Password or code |
 | --- | --- | --- |
-| Parent | `+910000000001` | `123456` in the deployed demo after the reviewer OTP variables below are configured; locally use the latest OTP shown in the UI or dev server log. |
+| Parent | `+910000000001` | `123456` after setting the Production environment variables below; locally use the latest OTP shown in the UI or dev server log. |
 | Accounts staff | `accounts@tracky.edu` | `Staff@123` |
 | Administrator | `admin@tracky.edu` | `Staff@123` |
 | Counsellor | `counsellor@tracky.edu` | `Staff@123` |
 
-The public deployment has no SMS provider. The fixed parent demo OTP is accepted only for the exact seeded demo phone when `DEMO_PARENT_PHONE` and `DEMO_PARENT_OTP` are configured in production. It does not enable fixed-code login for any other phone. The demo account uses synthetic data and is intended for reviewer access, not real parent accounts.
+The seed creates these staff logins. The public deployment has no SMS provider, so configure these two Vercel **Production** variables to enable the parent reviewer login:
+
+```text
+DEMO_PARENT_PHONE=+910000000001
+DEMO_PARENT_OTP=123456
+```
+
+The fixed OTP is accepted only for that exact seeded phone; it does not enable fixed-code login for any other number. After changing the variables, redeploy the Production deployment. This is a shared synthetic parent account for reviewers, not a real parent account.
+
+## Make the public link accessible
+
+1. In Vercel, open the project and go to **Settings → Deployment Protection**.
+2. Ensure the production domain is public. **Standard Protection** leaves production domains public; **All Deployments** protects them too.
+3. In **Deployments**, copy the URL for the deployment marked **Production** and share that URL. Preview deployment URLs may require Vercel sign-in.
+4. Open the production URL in a private/incognito browser window and verify it loads without Vercel authentication. Then test `/login` with one of the reviewer accounts above.
+
+Vercel access protection and Tracky's own staff/parent login are separate. Making the production site public removes Vercel's gate; the app's login still controls access to its portals.
 
 ## Deploy to Vercel
 
